@@ -105,6 +105,8 @@ const centroid = COMMUNE_CENTROIDS[nom];
     <title>{nom} — Maintenances Helia NC</title>
     <meta name="description" content={`Maintenances réseau Helia par OPT-NC à ${nom}, Nouvelle-Calédonie.`} />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <script is:inline src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <link rel="alternate" type="application/rss+xml" title={`Helia NC — ${nom}`}
       href={`/helia-etat-reseau-data/commune/${encodeURIComponent(nom)}/rss.xml`} />
     <style>
@@ -166,6 +168,10 @@ const centroid = COMMUNE_CENTROIDS[nom];
       .nearby-ok  { background:#052e16; color:#4ade80; border:1px solid #4ade8033; }
       #geo-status { font-size:.78rem; color:#64748b; margin-top:6px; display:flex; align-items:center; gap:6px; }
       #geo-status i { color:#475569; }
+      /* Mini-carte */
+      #minimap { width:100%; height:200px; border-radius:10px; overflow:hidden; border:1px solid #2d3148; margin-bottom:20px; position:relative; }
+      #minimap .maplibregl-ctrl-bottom-left { display:none; }
+      .minimap-marker { width:18px; height:18px; border-radius:50%; background:#e5009f; border:3px solid #fff; box-shadow:0 0 0 3px #e5009f66, 0 0 18px #e5009f88; cursor:default; }
     </style>
   </head>
   <body>
@@ -204,6 +210,9 @@ const centroid = COMMUNE_CENTROIDS[nom];
         </div>
       </div>
 
+      <!-- Mini-carte -->
+      {centroid && <div id="minimap"></div>}
+
       <!-- Interventions -->
       <div class="section">
         <div class="section-head"><i class="fa-solid fa-calendar-days"></i> Interventions à venir</div>
@@ -241,6 +250,27 @@ const centroid = COMMUNE_CENTROIDS[nom];
         <div id="nearby-list"></div>
       </div>
     </div>
+
+    <script define:vars={{ COMMUNE_CENTROIDS, currentNom: nom, countByCommune, centroid }}>
+      // Mini-carte
+      if (centroid && document.getElementById('minimap')) {
+        const minimap = new maplibregl.Map({
+          container: 'minimap',
+          style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+          center: [centroid[1], centroid[0]],
+          zoom: 9,
+          interactive: false,
+          attributionControl: false,
+        });
+        minimap.on('load', () => {
+          const el = document.createElement('div');
+          el.className = 'minimap-marker';
+          new maplibregl.Marker({ element: el })
+            .setLngLat([centroid[1], centroid[0]])
+            .addTo(minimap);
+        });
+      }
+    </script>
 
     <script define:vars={{ COMMUNE_CENTROIDS, currentNom: nom, countByCommune }}>
       const INTERVENTIONS_BY_COMMUNE = countByCommune;
