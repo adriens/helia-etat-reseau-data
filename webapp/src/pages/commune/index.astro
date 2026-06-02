@@ -1,0 +1,119 @@
+---
+import '../../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
+
+const dataDir = resolve(process.cwd(), '../data/active');
+const files = await readdir(dataDir).catch(() => []);
+const all: any[] = await Promise.all(
+  files.filter(f => f.endsWith('.json')).map(async f =>
+    JSON.parse(await readFile(resolve(dataDir, f), 'utf-8'))
+  )
+);
+
+// Count interventions per commune
+const countByCommune: Record<string, number> = {};
+for (const m of all) {
+  for (const c of m.communes_concernees as string[]) {
+    countByCommune[c] = (countByCommune[c] ?? 0) + 1;
+  }
+}
+
+const COMMUNE_POPULATION: Record<string, number> = {
+  BELEP:867, BOULOUPARIS:3315, BOURAIL:5531, CANALA:3701, DUMBEA:35873, FARINO:712,
+  HIENGHENE:2454, HOUAILOU:3955, 'ILE DES PINS':2037, 'KAALA-GOMEN':1803, KONE:8144,
+  KOUAOUA:1304, KOUMAC:3981, 'LA FOA':3552, LIFOU:9195, MARE:5757, MOINDOU:681,
+  'MONT-DORE':27620, NOUMEA:94285, OUEGOA:2118, OUVEA:3401, PAITA:24563, POINDIMIE:5006,
+  PONERIHOUEN:2420, POUEBO:2144, POUEMBOUT:2752, POUM:1435, POYA:2802, SARRAMEA:572,
+  THIO:2524, TOUHO:2380, VOH:2856, YATE:1667,
+};
+
+const PROVINCE_OF: Record<string, string> = {
+  BOULOUPARIS:'Province Sud', BOURAIL:'Province Sud', DUMBEA:'Province Sud', FARINO:'Province Sud',
+  'ILE DES PINS':'Province Sud', 'LA FOA':'Province Sud', MOINDOU:'Province Sud',
+  'MONT-DORE':'Province Sud', NOUMEA:'Province Sud', PAITA:'Province Sud', SARRAMEA:'Province Sud',
+  THIO:'Province Sud', YATE:'Province Sud', BELEP:'Province Nord', CANALA:'Province Nord',
+  HIENGHENE:'Province Nord', HOUAILOU:'Province Nord', 'KAALA-GOMEN':'Province Nord',
+  KONE:'Province Nord', KOUAOUA:'Province Nord', KOUMAC:'Province Nord', OUEGOA:'Province Nord',
+  POINDIMIE:'Province Nord', PONERIHOUEN:'Province Nord', POUEBO:'Province Nord',
+  POUEMBOUT:'Province Nord', POUM:'Province Nord', POYA:'Province Nord', TOUHO:'Province Nord',
+  VOH:'Province Nord', LIFOU:'Îles Loyauté', MARE:'Îles Loyauté', OUVEA:'Îles Loyauté',
+};
+
+// Group by province
+const PROVINCES = ['Province Sud', 'Province Nord', 'Îles Loyauté'] as const;
+const byProvince: Record<string, string[]> = { 'Province Sud':[], 'Province Nord':[], 'Îles Loyauté':[] };
+for (const [c, p] of Object.entries(PROVINCE_OF)) {
+  byProvince[p]?.push(c);
+}
+for (const p of PROVINCES) byProvince[p].sort();
+
+const communes = Object.keys(countByCommune).sort();
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/helia-etat-reseau-data/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Communes — Helia NC</title>
+    <meta name="description" content="Pages de suivi des maintenances Helia par OPT-NC, par commune de Nouvelle-Calédonie." />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <style>
+      body { margin:0; min-height:100dvh; background:#0f1117; color:#e2e8f0; font-family:system-ui,-apple-system,sans-serif; }
+      .page { max-width:900px; margin:0 auto; padding:28px 16px 60px; }
+      .back { display:inline-flex; align-items:center; gap:6px; color:#64748b; font-size:.82rem; text-decoration:none; border:1px solid #2d3148; padding:5px 12px; border-radius:20px; margin-bottom:24px; transition:color .15s,border-color .15s; }
+      .back:hover { color:#e5009f; border-color:#e5009f88; }
+      h1 { font-size:1.6rem; font-weight:800; color:#f8fafc; margin:0 0 6px; }
+      .subtitle { font-size:.85rem; color:#64748b; margin-bottom:28px; }
+      .province-section { margin-bottom:28px; }
+      .province-title { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#475569; display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+      .province-title i { color:#e5009f; }
+      .communes-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+      .commune-card { background:#13151f; border:1px solid #2d3148; border-radius:10px; padding:12px 16px; text-decoration:none; color:inherit; display:flex; flex-direction:column; gap:5px; transition:border-color .15s,background .15s; position:relative; }
+      .commune-card:hover { border-color:#e5009f88; background:#1a1020; }
+      .commune-card.has-int { border-left:3px solid #e5009f; }
+      .commune-card-name { font-weight:700; font-size:.9rem; color:#f1f5f9; }
+      .commune-card-meta { font-size:.7rem; color:#475569; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+      .int-badge { font-size:.65rem; font-weight:700; background:#2a0820; color:#e5009f; border:1px solid #e5009f44; padding:1px 7px; border-radius:8px; display:inline-flex; align-items:center; gap:3px; }
+      .int-badge i { font-size:.6rem; }
+      .ok-badge { font-size:.65rem; color:#4ade80; display:inline-flex; align-items:center; gap:3px; }
+      .ok-badge i { font-size:.6rem; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <a href="/helia-etat-reseau-data/" class="back">
+        <i class="fa-solid fa-arrow-left"></i> Carte
+      </a>
+      <h1><i class="fa-solid fa-city" style="color:#e5009f;margin-right:8px"></i>Communes</h1>
+      <p class="subtitle">Suivez les maintenances Helia par OPT-NC pour chaque commune — abonnez-vous en iCal ou RSS.</p>
+
+      {PROVINCES.map(province => (
+        <div class="province-section">
+          <div class="province-title"><i class="fa-solid fa-map"></i>{province}</div>
+          <div class="communes-grid">
+            {byProvince[province].map(c => {
+              const n = countByCommune[c] ?? 0;
+              const pop = COMMUNE_POPULATION[c];
+              return (
+                <a class={`commune-card${n > 0 ? ' has-int' : ''}`}
+                   href={`/helia-etat-reseau-data/commune/${encodeURIComponent(c)}/`}>
+                  <div class="commune-card-name">{c}</div>
+                  <div class="commune-card-meta">
+                    {pop != null && <span><i class="fa-solid fa-people-group" style="color:#4c3f8a;font-size:.6rem"></i> {pop.toLocaleString('fr-FR')}</span>}
+                    {n > 0
+                      ? <span class="int-badge"><i class="fa-solid fa-bolt"></i>{n} int.</span>
+                      : <span class="ok-badge"><i class="fa-solid fa-circle-check"></i> nominal</span>
+                    }
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  </body>
+</html>

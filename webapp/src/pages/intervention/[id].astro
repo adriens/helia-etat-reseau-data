@@ -1,0 +1,255 @@
+---
+import '../../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
+
+export async function getStaticPaths() {
+  const dataDir = resolve(process.cwd(), '../data/active');
+  const files = await readdir(dataDir).catch(() => []);
+  const all = await Promise.all(
+    files.filter(f => f.endsWith('.json'))
+         .map(async f => JSON.parse(await readFile(resolve(dataDir, f), 'utf-8')))
+  );
+  return all.map(m => ({ params: { id: m.id }, props: { m } }));
+}
+
+const { m } = Astro.props as { m: any };
+
+const IMPACT_META: Record<string, { label: string; cls: string; color: string; icon: string }> = {
+  COUPURE_30_MIN:    { label: 'Coupure ~30 min',    cls: 'imp-30', color: '#fca5a5', icon: 'fa-bolt' },
+  COUPURE_20_30_MIN: { label: 'Coupure 20–30 min',  cls: 'imp-20', color: '#fed7aa', icon: 'fa-bolt-lightning' },
+  A_DETERMINER:      { label: 'Impact à déterminer', cls: 'imp-ad', color: '#fde68a', icon: 'fa-circle-question' },
+};
+const SVC_META: Record<string, { icon: string; label: string }> = {
+  TELEPHONIE_FIXE:          { icon: 'fa-phone',          label: 'Téléphonie fixe' },
+  TELEPHONIE_MOBILE:        { icon: 'fa-mobile-screen',  label: 'Téléphonie mobile' },
+  INTERNET_FIXE:            { icon: 'fa-wifi',            label: 'Internet fixe' },
+  INTERNET_MOBILE:          { icon: 'fa-signal',          label: 'Internet mobile' },
+  FIBRE_OPTIQUE:            { icon: 'fa-circle-nodes',    label: 'Fibre optique' },
+  RESEAU_CUIVRE:            { icon: 'fa-network-wired',   label: 'Réseau cuivre' },
+  LIAISONS_CELERIS_ETHERNET:{ icon: 'fa-ethernet',        label: 'Céléris Ethernet' },
+};
+const PROVINCE_META: Record<string, { label: string; icon: string }> = {
+  PROVINCE_SUD:  { label: 'Province Sud',           icon: 'fa-map-pin' },
+  PROVINCE_NORD: { label: 'Province Nord',           icon: 'fa-map-pin' },
+  ILES_LOYAUTE:  { label: 'Îles Loyauté',            icon: 'fa-island-tropical' },
+};
+const COMMUNE_POPULATION: Record<string, number> = {
+  BELEP: 867, BOULOUPARIS: 3315, BOURAIL: 5531, CANALA: 3701,
+  DUMBEA: 35873, FARINO: 712, HIENGHENE: 2454, HOUAILOU: 3955,
+  'ILE DES PINS': 2037, 'KAALA-GOMEN': 1803, KONE: 8144, KOUAOUA: 1304,
+  KOUMAC: 3981, 'LA FOA': 3552, LIFOU: 9195, MARE: 5757, MOINDOU: 681,
+  'MONT-DORE': 27620, NOUMEA: 94285, OUEGOA: 2118, OUVEA: 3401,
+  PAITA: 24563, POINDIMIE: 5006, PONERIHOUEN: 2420, POUEBO: 2144,
+  POUEMBOUT: 2752, POUM: 1435, POYA: 2802, SARRAMEA: 572,
+  THIO: 2524, TOUHO: 2380, VOH: 2856, YATE: 1667,
+};
+
+const im = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
+const totalPop = m.communes_concernees.reduce((s: number, c: string) => s + (COMMUNE_POPULATION[c] ?? 0), 0);
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleString('fr-NC', {
+    timeZone: 'Pacific/Noumea',
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+function fmtPop(n: number) {
+  return n.toLocaleString('fr-FR');
+}
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/helia-etat-reseau-data/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Maintenance #{m.id} — Helia NC</title>
+    <meta name="description" content={`Détail de la maintenance ${m.id} — ${m.communes_concernees.join(', ')}`} />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <style>
+      body { margin: 0; min-height: 100dvh; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; }
+      .page { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; }
+      .back { display: inline-flex; align-items: center; gap: 6px; color: #64748b; font-size: .82rem; text-decoration: none; border: 1px solid #2d3148; padding: 5px 12px; border-radius: 20px; margin-bottom: 24px; transition: color .15s, border-color .15s; }
+      .back:hover { color: #e5009f; border-color: #e5009f88; }
+      .card { background: #13151f; border: 1px solid #2d3148; border-radius: 12px; overflow: hidden; }
+      /* Header */
+      .card-head { padding: 20px 22px 16px; border-bottom: 1px solid #2d3148; display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+      .id-badge { font-family: monospace; font-size: .85rem; font-weight: 700; color: #e5009f; background: #2a0820; border: 1px solid #e5009f66; padding: 3px 10px; border-radius: 6px; letter-spacing: .05em; }
+      .impact-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-left: auto; }
+      .imp-30 { color: #fca5a5; background: #450a0a; border: 1px solid #fca5a533; }
+      .imp-20 { color: #fed7aa; background: #431407; border: 1px solid #fed7aa33; }
+      .imp-ad { color: #fde68a; background: #422006; border: 1px solid #fde68a33; }
+      /* Sections */
+      .section { padding: 16px 22px; border-bottom: 1px solid #2d3148; }
+      .section:last-child { border-bottom: none; }
+      .section-title { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #475569; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+      .section-title i { color: #e5009f; }
+      /* Dates row */
+      .dates-row { display: flex; flex-direction: column; gap: 6px; }
+      .date-line { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: #cbd5e1; }
+      .date-line i { color: #64748b; width: 14px; text-align: center; }
+      .date-label { font-size: .7rem; color: #475569; min-width: 40px; }
+      .duree-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+      .chip { display: inline-flex; align-items: center; gap: 5px; background: #1a1d27; border: 1px solid #2d3148; color: #94a3b8; font-size: .75rem; padding: 4px 10px; border-radius: 20px; }
+      .chip i { color: #64748b; font-size: .7rem; }
+      /* Services */
+      .svc-list { display: flex; flex-wrap: wrap; gap: 8px; }
+      .svc-badge { display: inline-flex; align-items: center; gap: 6px; background: #3d0025; border: 1px solid #e5009f88; color: #fbb6df; font-size: .82rem; font-weight: 600; padding: 6px 14px; border-radius: 20px; }
+      .svc-badge i { color: #e5009f; font-size: .75rem; }
+      /* Communes */
+      .commune-list { display: flex; flex-direction: column; gap: 6px; }
+      .commune-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+      .commune-name { font-weight: 600; color: #f1f5f9; min-width: 120px; }
+      .province-tag { font-size: .65rem; color: #64748b; background: #1a1d27; border: 1px solid #2d3148; padding: 2px 7px; border-radius: 10px; }
+      .commune-pop { margin-left: auto; font-size: .75rem; color: #64748b; display: flex; align-items: center; gap: 4px; }
+      .commune-pop i { color: #4c3f8a; font-size: .65rem; }
+      /* Population totale */
+      .pop-total { display: flex; align-items: center; gap: 10px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 12px 16px; }
+      .pop-total-num { font-size: 1.4rem; font-weight: 700; color: #f8fafc; }
+      .pop-total-label { font-size: .75rem; color: #64748b; margin-top: 1px; }
+      .pop-total i { color: #e5009f; font-size: 1.1rem; }
+      /* Provinces */
+      .province-list { display: flex; flex-wrap: wrap; gap: 8px; }
+      .province-badge { display: inline-flex; align-items: center; gap: 6px; background: #1a1d27; border: 1px solid #2d3148; color: #94a3b8; font-size: .8rem; padding: 5px 12px; border-radius: 20px; }
+      .province-badge i { color: #64748b; }
+      /* Meta */
+      .meta-row { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: #64748b; }
+      .meta-row i { color: #4c3f8a; width: 14px; text-align: center; }
+      .meta-row a { color: #818cf8; text-decoration: none; }
+      .meta-row a:hover { text-decoration: underline; }
+      .meta-rows { display: flex; flex-direction: column; gap: 7px; }
+      /* Responsive */
+      @media (max-width: 500px) { .card-head { gap: 8px; } .impact-badge { margin-left: 0; } }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <a href="/helia-etat-reseau-data/" class="back">
+        <i class="fa-solid fa-arrow-left"></i> Retour à la carte
+      </a>
+
+      <div class="card">
+        <!-- En-tête -->
+        <div class="card-head">
+          <span class="id-badge"><i class="fa-solid fa-fingerprint"></i> {m.id}</span>
+          <span class={`impact-badge ${im.cls}`}>
+            <i class={`fa-solid ${im.icon}`}></i>{im.label}
+          </span>
+        </div>
+
+        <!-- Dates et durées -->
+        <div class="section">
+          <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Fenêtre de maintenance</div>
+          <div class="dates-row">
+            <div class="date-line">
+              <span class="date-label">Début</span>
+              <i class="fa-regular fa-clock"></i>
+              {fmtDate(m.timestamp_debut)}
+            </div>
+            <div class="date-line">
+              <span class="date-label">Fin</span>
+              <i class="fa-regular fa-clock"></i>
+              {fmtDate(m.timestamp_fin)}
+            </div>
+          </div>
+          <div class="duree-chips">
+            <span class="chip"><i class="fa-solid fa-hourglass-half"></i> Fenêtre : {m.duree_fenetre_minutes} min</span>
+            {m.duree_coupure_min_minutes != null && (
+              <span class="chip"><i class="fa-solid fa-bolt"></i> Coupure : {m.duree_coupure_min_minutes}–{m.duree_coupure_max_minutes} min</span>
+            )}
+            {m.est_toute_nc && (
+              <span class="chip"><i class="fa-solid fa-earth-oceania"></i> Toute la Nouvelle-Calédonie</span>
+            )}
+          </div>
+        </div>
+
+        <!-- Services impactés -->
+        <div class="section">
+          <div class="section-title"><i class="fa-solid fa-network-wired"></i> Services impactés</div>
+          <div class="svc-list">
+            {m.services.map((s: string) => {
+              const sv = SVC_META[s] ?? { icon: 'fa-circle-nodes', label: s.replace(/_/g, ' ') };
+              return (
+                <span class="svc-badge">
+                  <i class={`fa-solid ${sv.icon}`}></i>{sv.label}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        <!-- Communes et population -->
+        <div class="section">
+          <div class="section-title"><i class="fa-solid fa-location-dot"></i> Communes concernées ({m.nb_communes_concernees})</div>
+          <div class="commune-list">
+            {m.communes_concernees.map((c: string) => {
+              const pop = COMMUNE_POPULATION[c];
+              const province = m.communes_geopoints?.find((g: any) => g.commune === c) ? null : null;
+              return (
+                <div class="commune-row">
+                  <span class="commune-name">{c}</span>
+                  {pop != null && (
+                    <span class="commune-pop"><i class="fa-solid fa-people-group"></i>{fmtPop(pop)} hab.</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <!-- Population totale -->
+        {totalPop > 0 && (
+          <div class="section">
+            <div class="section-title"><i class="fa-solid fa-users"></i> Population totale concernée</div>
+            <div class="pop-total">
+              <i class="fa-solid fa-users"></i>
+              <div>
+                <div class="pop-total-num">{fmtPop(totalPop)} hab.</div>
+                <div class="pop-total-label">Recensement ISEE 2019</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <!-- Provinces -->
+        <div class="section">
+          <div class="section-title"><i class="fa-solid fa-map"></i> Provinces</div>
+          <div class="province-list">
+            {m.provinces_concernees.map((p: string) => {
+              const pm = PROVINCE_META[p] ?? { label: p, icon: 'fa-map-pin' };
+              return (
+                <span class="province-badge">
+                  <i class={`fa-solid ${pm.icon}`}></i>{pm.label}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+
+        <!-- Métadonnées -->
+        <div class="section">
+          <div class="section-title"><i class="fa-solid fa-circle-info"></i> Métadonnées</div>
+          <div class="meta-rows">
+            <div class="meta-row">
+              <i class="fa-solid fa-satellite-dish"></i>
+              Scrape : {new Date(m.scraped_at).toLocaleString('fr-NC', { timeZone:'Pacific/Noumea', day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+            </div>
+            <div class="meta-row">
+              <i class="fa-solid fa-link"></i>
+              <a href={m.source_url} target="_blank" rel="noopener">
+                {m.source_url} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:.6rem"></i>
+              </a>
+            </div>
+            <div class="meta-row">
+              <i class="fa-solid fa-fingerprint"></i>
+              SHA256 tronqué : <code style="font-family:monospace;color:#e5009f">{m.id}</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

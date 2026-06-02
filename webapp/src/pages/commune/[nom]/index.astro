@@ -1,0 +1,311 @@
+---
+import '../../../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
+
+const COMMUNE_CENTROIDS: Record<string, [number, number]> = {
+  NOUMEA:[-22.2578,166.4501], DUMBEA:[-22.1265,166.4937], PAITA:[-22.041,166.3166],
+  'MONT-DORE':[-22.2757,166.7285], BOULOUPARIS:[-21.8593,166.1119], YATE:[-22.0835,166.7249],
+  'ILE DES PINS':[-22.6125,167.4799], 'LA FOA':[-21.7227,165.8805], FARINO:[-21.6482,165.7592],
+  SARRAMEA:[-21.6223,165.819], MOINDOU:[-21.6259,165.6749], BOURAIL:[-21.5344,165.4617],
+  THIO:[-21.7244,166.2565], CANALA:[-21.5313,165.969], KOUAOUA:[-21.4583,165.7826],
+  HOUAILOU:[-21.3302,165.55], PONERIHOUEN:[-21.1312,165.3155], POINDIMIE:[-20.9484,165.1758],
+  TOUHO:[-20.818,165.1577], POYA:[-21.3306,165.2104], POUEMBOUT:[-21.1671,165.001],
+  KONE:[-21.0263,164.9064], VOH:[-20.8689,164.7342], 'KAALA-GOMEN':[-20.7002,164.5131],
+  KOUMAC:[-20.5033,164.3282], POUM:[-20.2629,164.1477], OUEGOA:[-20.4081,164.4651],
+  POUEBO:[-20.4142,164.5976], BELEP:[-19.6931,163.6502], HIENGHENE:[-20.7161,164.8454],
+  LIFOU:[-20.945,167.2387], MARE:[-21.515,167.9704], OUVEA:[-20.5636,166.5627],
+};
+
+const COMMUNE_POPULATION: Record<string, number> = {
+  BELEP:867, BOULOUPARIS:3315, BOURAIL:5531, CANALA:3701, DUMBEA:35873, FARINO:712,
+  HIENGHENE:2454, HOUAILOU:3955, 'ILE DES PINS':2037, 'KAALA-GOMEN':1803, KONE:8144,
+  KOUAOUA:1304, KOUMAC:3981, 'LA FOA':3552, LIFOU:9195, MARE:5757, MOINDOU:681,
+  'MONT-DORE':27620, NOUMEA:94285, OUEGOA:2118, OUVEA:3401, PAITA:24563, POINDIMIE:5006,
+  PONERIHOUEN:2420, POUEBO:2144, POUEMBOUT:2752, POUM:1435, POYA:2802, SARRAMEA:572,
+  THIO:2524, TOUHO:2380, VOH:2856, YATE:1667,
+};
+
+const PROVINCE_OF: Record<string, string> = {
+  BOULOUPARIS:'Province Sud', BOURAIL:'Province Sud', DUMBEA:'Province Sud', FARINO:'Province Sud',
+  'ILE DES PINS':'Province Sud', 'LA FOA':'Province Sud', MOINDOU:'Province Sud',
+  'MONT-DORE':'Province Sud', NOUMEA:'Province Sud', PAITA:'Province Sud', SARRAMEA:'Province Sud',
+  THIO:'Province Sud', YATE:'Province Sud', BELEP:'Province Nord', CANALA:'Province Nord',
+  HIENGHENE:'Province Nord', HOUAILOU:'Province Nord', 'KAALA-GOMEN':'Province Nord',
+  KONE:'Province Nord', KOUAOUA:'Province Nord', KOUMAC:'Province Nord', OUEGOA:'Province Nord',
+  POINDIMIE:'Province Nord', PONERIHOUEN:'Province Nord', POUEBO:'Province Nord',
+  POUEMBOUT:'Province Nord', POUM:'Province Nord', POYA:'Province Nord', TOUHO:'Province Nord',
+  VOH:'Province Nord', LIFOU:'Îles Loyauté', MARE:'Îles Loyauté', OUVEA:'Îles Loyauté',
+};
+
+const SVC_META: Record<string, { icon: string; label: string }> = {
+  TELEPHONIE_FIXE:          { icon:'fa-phone',         label:'Téléphonie fixe' },
+  TELEPHONIE_MOBILE:        { icon:'fa-mobile-screen', label:'Téléphonie mobile' },
+  INTERNET_FIXE:            { icon:'fa-wifi',           label:'Internet fixe' },
+  INTERNET_MOBILE:          { icon:'fa-signal',         label:'Internet mobile' },
+  FIBRE_OPTIQUE:            { icon:'fa-circle-nodes',   label:'Fibre optique' },
+  RESEAU_CUIVRE:            { icon:'fa-network-wired',  label:'Réseau cuivre' },
+  LIAISONS_CELERIS_ETHERNET:{ icon:'fa-ethernet',       label:'Céléris Ethernet' },
+};
+
+const IMPACT_META: Record<string, { label:string; cls:string; icon:string }> = {
+  COUPURE_30_MIN:    { label:'Coupure ~30 min',    cls:'imp-30', icon:'fa-bolt' },
+  COUPURE_20_30_MIN: { label:'Coupure 20–30 min',  cls:'imp-20', icon:'fa-bolt-lightning' },
+  A_DETERMINER:      { label:'Impact à déterminer', cls:'imp-ad', icon:'fa-circle-question' },
+};
+
+export async function getStaticPaths() {
+  const dataDir = resolve(process.cwd(), '../data/active');
+  const files = await readdir(dataDir).catch(() => [] as string[]);
+  const all: any[] = await Promise.all(
+    files.filter(f => f.endsWith('.json')).map(async f =>
+      JSON.parse(await readFile(resolve(dataDir, f), 'utf-8'))
+    )
+  );
+  // Count interventions per commune for the nearby section
+  const countByCommune: Record<string, number> = {};
+  for (const m of all) {
+    for (const c of m.communes_concernees as string[]) {
+      countByCommune[c] = (countByCommune[c] ?? 0) + 1;
+    }
+  }
+  const communes = [...new Set(all.flatMap(m => m.communes_concernees as string[]))].sort();
+  return communes.map(nom => ({
+    params: { nom },
+    props: {
+      nom,
+      interventions: all
+        .filter(m => (m.communes_concernees as string[]).includes(nom))
+        .sort((a, b) => a.timestamp_debut.localeCompare(b.timestamp_debut)),
+      countByCommune,
+    },
+  }));
+}
+
+const { nom, interventions, countByCommune } = Astro.props as { nom: string; interventions: any[]; countByCommune: Record<string, number> };
+
+function fmtShort(iso: string) {
+  return new Date(iso).toLocaleString('fr-NC', {
+    timeZone: 'Pacific/Noumea', day: '2-digit', month: 'short',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+const pop = COMMUNE_POPULATION[nom];
+const province = PROVINCE_OF[nom] ?? '';
+const centroid = COMMUNE_CENTROIDS[nom];
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/helia-etat-reseau-data/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{nom} — Maintenances Helia NC</title>
+    <meta name="description" content={`Maintenances réseau Helia par OPT-NC à ${nom}, Nouvelle-Calédonie.`} />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <link rel="alternate" type="application/rss+xml" title={`Helia NC — ${nom}`}
+      href={`/helia-etat-reseau-data/commune/${encodeURIComponent(nom)}/rss.xml`} />
+    <style>
+      body { margin:0; min-height:100dvh; background:#0f1117; color:#e2e8f0; font-family:system-ui,-apple-system,sans-serif; }
+      .page { max-width:760px; margin:0 auto; padding:28px 16px 60px; }
+      /* Navigation */
+      .nav { display:flex; align-items:center; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
+      .back { display:inline-flex; align-items:center; gap:6px; color:#64748b; font-size:.82rem; text-decoration:none; border:1px solid #2d3148; padding:5px 12px; border-radius:20px; transition:color .15s,border-color .15s; }
+      .back:hover { color:#e5009f; border-color:#e5009f88; }
+      /* Hero commune */
+      .commune-hero { background:#13151f; border:1px solid #2d3148; border-radius:12px; padding:22px; margin-bottom:20px; display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+      .commune-icon { width:48px; height:48px; border-radius:12px; background:#2a0820; border:1px solid #e5009f55; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+      .commune-icon i { color:#e5009f; font-size:1.3rem; }
+      .commune-info { flex:1; min-width:160px; }
+      .commune-name { font-size:1.6rem; font-weight:800; color:#f8fafc; margin-bottom:4px; }
+      .commune-meta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+      .commune-tag { font-size:.72rem; color:#64748b; background:#1a1d27; border:1px solid #2d3148; padding:3px 9px; border-radius:10px; display:inline-flex; align-items:center; gap:5px; }
+      .commune-tag i { color:#475569; font-size:.65rem; }
+      /* Subscribe buttons */
+      .subscribe { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+      .sub-btn { display:inline-flex; align-items:center; gap:6px; font-size:.75rem; font-weight:600; padding:6px 14px; border-radius:20px; text-decoration:none; transition:background .15s,border-color .15s; }
+      .sub-ics { background:#1a1d27; border:1px solid #6366f1; color:#a5b4fc; }
+      .sub-ics:hover { background:#1e1f3a; }
+      .sub-rss { background:#1a1d27; border:1px solid #f97316; color:#fdba74; }
+      .sub-rss:hover { background:#1e1a0f; }
+      /* Section */
+      .section { margin-bottom:20px; }
+      .section-head { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#475569; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+      .section-head i { color:#e5009f; }
+      /* Intervention card */
+      .mi { background:#13151f; border:1px solid #2d3148; border-radius:10px; padding:14px 16px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px; border-left:4px solid #2d3148; text-decoration:none; color:inherit; transition:border-color .15s,background .15s; }
+      .mi:hover { border-color:#e5009f88; background:#1a1020; }
+      .mi-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+      .impact-badge { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:20px; }
+      .imp-30 { color:#fca5a5; background:#450a0a; border:1px solid #fca5a533; }
+      .imp-20 { color:#fed7aa; background:#431407; border:1px solid #fed7aa33; }
+      .imp-ad { color:#fde68a; background:#422006; border:1px solid #fde68a33; }
+      .mi-dates { font-size:.78rem; color:#94a3b8; display:flex; align-items:center; gap:5px; }
+      .mi-dates i { color:#475569; font-size:.7rem; }
+      .mi-svcs { display:flex; flex-wrap:wrap; gap:5px; }
+      .svc-chip { display:inline-flex; align-items:center; gap:4px; background:#3d0025; border:1px solid #e5009f55; color:#fbb6df; font-size:.72rem; padding:3px 9px; border-radius:14px; }
+      .svc-chip i { color:#e5009f; font-size:.65rem; }
+      .mi-id { font-family:monospace; font-size:.68rem; color:#475569; margin-left:auto; }
+      .empty { color:#475569; font-size:.85rem; padding:16px; background:#13151f; border:1px solid #2d3148; border-radius:10px; display:flex; align-items:center; gap:8px; }
+      .empty i { color:#334155; }
+      /* Nearby */
+      #nearby-section { margin-bottom:20px; }
+      #geo-btn { display:inline-flex; align-items:center; gap:8px; background:#1a1d27; border:1px solid #6366f1; color:#a5b4fc; font-size:.82rem; font-weight:600; padding:8px 18px; border-radius:20px; cursor:pointer; transition:background .15s; }
+      #geo-btn:hover { background:#1e1f3a; }
+      #geo-btn i { font-size:.75rem; }
+      #nearby-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+      .nearby-card { background:#13151f; border:1px solid #2d3148; border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit; transition:border-color .15s,background .15s; }
+      .nearby-card:hover { border-color:#6366f188; background:#16182a; }
+      .nearby-name { font-weight:600; color:#f1f5f9; flex:1; }
+      .nearby-dist { font-size:.75rem; color:#64748b; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+      .nearby-dist i { color:#4c3f8a; font-size:.65rem; }
+      .nearby-badge { font-size:.65rem; font-weight:700; padding:2px 7px; border-radius:10px; }
+      .nearby-has { background:#2a0820; color:#e5009f; border:1px solid #e5009f44; }
+      .nearby-ok  { background:#052e16; color:#4ade80; border:1px solid #4ade8033; }
+      #geo-status { font-size:.78rem; color:#64748b; margin-top:6px; display:flex; align-items:center; gap:6px; }
+      #geo-status i { color:#475569; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <nav class="nav">
+        <a href="/helia-etat-reseau-data/" class="back">
+          <i class="fa-solid fa-arrow-left"></i> Carte
+        </a>
+        <a href="/helia-etat-reseau-data/commune/" class="back">
+          <i class="fa-solid fa-city"></i> Toutes les communes
+        </a>
+      </nav>
+
+      <!-- Hero -->
+      <div class="commune-hero">
+        <div class="commune-icon"><i class="fa-solid fa-location-dot"></i></div>
+        <div class="commune-info">
+          <div class="commune-name">{nom}</div>
+          <div class="commune-meta">
+            {province && <span class="commune-tag"><i class="fa-solid fa-map"></i>{province}</span>}
+            {pop != null && <span class="commune-tag"><i class="fa-solid fa-people-group"></i>{pop.toLocaleString('fr-FR')} hab.</span>}
+            <span class="commune-tag"><i class="fa-solid fa-bolt"></i>{interventions.length} intervention{interventions.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="subscribe">
+            <a class="sub-btn sub-ics"
+               href={`/helia-etat-reseau-data/commune/${encodeURIComponent(nom)}/calendar.ics`}
+               title="S'abonner au calendrier iCal">
+              <i class="fa-regular fa-calendar"></i> iCal
+            </a>
+            <a class="sub-btn sub-rss"
+               href={`/helia-etat-reseau-data/commune/${encodeURIComponent(nom)}/rss.xml`}
+               title="S'abonner au flux RSS">
+              <i class="fa-solid fa-rss"></i> RSS
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interventions -->
+      <div class="section">
+        <div class="section-head"><i class="fa-solid fa-calendar-days"></i> Interventions à venir</div>
+        {interventions.length === 0 ? (
+          <div class="empty"><i class="fa-solid fa-circle-check"></i> Aucune intervention programmée — le réseau est nominal.</div>
+        ) : (
+          interventions.map(m => {
+            const im = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
+            return (
+              <a class="mi" href={`/helia-etat-reseau-data/intervention/${m.id}`}>
+                <div class="mi-head">
+                  <span class={`impact-badge ${im.cls}`}><i class={`fa-solid ${im.icon}`}></i>{im.label}</span>
+                  <span class="mi-dates"><i class="fa-regular fa-clock"></i>{fmtShort(m.timestamp_debut)} → {fmtShort(m.timestamp_fin)}</span>
+                  <span class="mi-id">#{m.id}</span>
+                </div>
+                <div class="mi-svcs">
+                  {m.services.map((s: string) => {
+                    const sv = SVC_META[s] ?? { icon:'fa-circle-nodes', label:s.replace(/_/g,' ') };
+                    return <span class="svc-chip"><i class={`fa-solid ${sv.icon}`}></i>{sv.label}</span>;
+                  })}
+                </div>
+              </a>
+            );
+          })
+        )}
+      </div>
+
+      <!-- Nearby communes via géolocalisation -->
+      <div id="nearby-section" class="section">
+        <div class="section-head"><i class="fa-solid fa-location-crosshairs"></i> Communes proches de vous (rayon 50 km)</div>
+        <button id="geo-btn" onclick="locateMe()">
+          <i class="fa-solid fa-location-dot"></i> Localiser ma position
+        </button>
+        <div id="geo-status"></div>
+        <div id="nearby-list"></div>
+      </div>
+    </div>
+
+    <script define:vars={{ COMMUNE_CENTROIDS, currentNom: nom, countByCommune }}>
+      const INTERVENTIONS_BY_COMMUNE = countByCommune;
+
+      function haversineKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+
+      function locateMe() {
+        const btn = document.getElementById('geo-btn');
+        const status = document.getElementById('geo-status');
+        const list = document.getElementById('nearby-list');
+        if (!navigator.geolocation) {
+          status.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Géolocalisation non supportée par ce navigateur.';
+          return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Localisation en cours…';
+        status.innerHTML = '';
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            const { latitude: userLat, longitude: userLon } = pos.coords;
+            btn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Actualiser';
+            btn.disabled = false;
+            const RADIUS_KM = 50;
+            const nearby = Object.entries(COMMUNE_CENTROIDS)
+              .filter(([c]) => c !== currentNom)
+              .map(([c, [lat, lon]]) => ({ c, dist: haversineKm(userLat, userLon, lat, lon) }))
+              .filter(({ dist }) => dist <= RADIUS_KM)
+              .sort((a, b) => a.dist - b.dist);
+
+            if (nearby.length === 0) {
+              list.innerHTML = '<div class="empty"><i class="fa-solid fa-circle-xmark"></i> Aucune commune Helia dans un rayon de 50 km.</div>';
+              return;
+            }
+            list.innerHTML = nearby.map(({ c, dist }) => {
+              const hasInt = INTERVENTIONS_BY_COMMUNE[c] > 0;
+              const badge = hasInt
+                ? `<span class="nearby-badge nearby-has"><i class="fa-solid fa-bolt"></i> ${INTERVENTIONS_BY_COMMUNE[c]} int.</span>`
+                : `<span class="nearby-badge nearby-ok"><i class="fa-solid fa-circle-check"></i> nominal</span>`;
+              return `<a class="nearby-card" href="/helia-etat-reseau-data/commune/${encodeURIComponent(c)}/">
+                <span class="nearby-name">${c}</span>
+                <span class="nearby-dist"><i class="fa-solid fa-route"></i>${dist.toFixed(1)} km</span>
+                ${badge}
+              </a>`;
+            }).join('');
+          },
+          err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-location-dot"></i> Localiser ma position';
+            const msgs: Record<number, string> = {
+              1: 'Permission de géolocalisation refusée.',
+              2: 'Position indisponible.',
+              3: 'Délai dépassé.',
+            };
+            status.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${msgs[err.code] ?? 'Erreur inconnue.'}`;
+          },
+          { enableHighAccuracy: false, timeout: 10000 }
+        );
+      }
+    </script>
+
+  </body>
+</html>
