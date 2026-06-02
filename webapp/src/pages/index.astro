@@ -31,6 +31,19 @@ const lastScrapedAt = maintenances.length
 const lastRefresh = lastScrapedAt
   ? new Date(lastScrapedAt).toLocaleString('fr-NC', { timeZone:'Pacific/Noumea', weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
   : null;
+
+// Population municipale — recensement ISEE 2019
+// Source : data.gouv.nc/explore/dataset/population-legale-de-la-nouvelle-caledonie
+const COMMUNE_POPULATION: Record<string, number> = {
+  BELEP: 867, BOULOUPARIS: 3315, BOURAIL: 5531, CANALA: 3701,
+  DUMBEA: 35873, FARINO: 712, HIENGHENE: 2454, HOUAILOU: 3955,
+  "ILE DES PINS": 2037, "KAALA-GOMEN": 1803, KONE: 8144, KOUAOUA: 1304,
+  KOUMAC: 3981, "LA FOA": 3552, LIFOU: 9195, MARE: 5757, MOINDOU: 681,
+  "MONT-DORE": 27620, NOUMEA: 94285, OUEGOA: 2118, OUVEA: 3401,
+  PAITA: 24563, POINDIMIE: 5006, PONERIHOUEN: 2420, POUEBO: 2144,
+  POUEMBOUT: 2752, POUM: 1435, POYA: 2802, SARRAMEA: 572,
+  THIO: 2524, TOUHO: 2380, VOH: 2856, YATE: 1667,
+};
 ---
 
 <html lang="fr">
@@ -257,7 +270,7 @@ const lastRefresh = lastScrapedAt
       </div>
     </div>
 
-    <script define:vars={{ maintenances }}>
+    <script define:vars={{ maintenances, COMMUNE_POPULATION }}>
       // ── Carte ────────────────────────────────────────────────────────────
       const map = new maplibregl.Map({
         container: "map",
@@ -761,8 +774,12 @@ const lastRefresh = lastScrapedAt
           const sv = SVC[s] ?? { icon: 'fa-circle-nodes', label: s.replace(/_/g,' ') };
           return `<span class="tp-svc"><i class="fa-solid ${sv.icon}"></i>${sv.label}</span>`;
         }).join('');
+        const pop  = COMMUNE_POPULATION[gp.commune];
+        const popHtml = pop != null
+          ? `<span class="tp-pop"><i class="fa-solid fa-people-group"></i>${pop.toLocaleString('fr-FR')} hab.</span>`
+          : '';
         const html = `<div class="tp">
-          <div class="tp-commune"><i class="fa-solid fa-location-dot"></i>${gp.commune}</div>
+          <div class="tp-commune"><i class="fa-solid fa-location-dot"></i>${gp.commune}${popHtml}</div>
           <div class="tp-svcs">${svcs}</div>
           <div class="tp-foot">
             <span class="tp-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
@@ -891,7 +908,9 @@ const lastRefresh = lastScrapedAt
   .hp-footer { padding:4px 12px 6px; font-size:.6rem; color:#4a4570; text-align:right; font-style:italic; }
   .helia-tour-popup .maplibregl-popup-content { border-color: #e5009f !important; box-shadow: 0 0 0 1px #e5009f55, 0 16px 40px rgba(0,0,0,.9) !important; }
   .tp { min-width: 230px; }
-  .tp-commune { font-size: 1.05rem; font-weight: 700; color: #f8fafc; padding: 10px 14px 8px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #2d3148; }
+  .tp-commune { font-size: 1.05rem; font-weight: 700; color: #f8fafc; padding: 10px 14px 8px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; border-bottom: 1px solid #2d3148; }
+  .tp-pop { font-size: .7rem; font-weight: 500; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap; }
+  .tp-pop i { color: #4c3f8a; font-size: .65rem; }
   .tp-commune i { color: #e5009f; }
   .tp-svcs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 8px; }
   .tp-svc { display: inline-flex; align-items: center; gap: 5px; background: #3d0025; border: 1px solid #e5009f88; color: #fbb6df; font-size: .82rem; font-weight: 600; padding: 5px 11px; border-radius: 20px; }
