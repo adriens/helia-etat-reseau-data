@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build site Astro
+    runs-on: ubuntu-latest
+    env:
+      TZ: Pacific/Noumea
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Installer les dépendances
+        working-directory: webapp
+        run: bun install
+
+      - name: Build
+        working-directory: webapp
+        run: bun run build
