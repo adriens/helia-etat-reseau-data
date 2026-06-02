@@ -38,6 +38,32 @@ Chaque fichier est nommé par l'identifiant stable de la maintenance (`id` SHA25
 }
 ```
 
+## Base de données DuckDB
+
+Les données peuvent être chargées dans une base DuckDB pour faciliter les analyses SQL :
+
+```bash
+uv run scripts/build_db.py
+```
+
+Cela génère un fichier `data/helia.duckdb` avec les tables suivantes :
+- `maintenances` : informations principales
+- `maintenance_communes` : lien entre maintenances et communes
+- `maintenance_services` : lien entre maintenances et services
+- `maintenance_provinces` : lien entre maintenances et provinces
+- `maintenance_geopoints` : coordonnées géographiques des communes impactées (colonne `geom` de type `GEOMETRY`)
+
+Exemple de requête spatiale (maintenances à moins de 50km de Nouméa) :
+
+```sql
+LOAD spatial;
+SET geometry_always_xy = true;
+SELECT 
+    COUNT(DISTINCT maintenance_id) 
+FROM maintenance_geopoints 
+WHERE ST_Distance_Spheroid(geom, ST_Point(166.45, -22.25)) <= 50000;
+```
+
 ## Scraper
 
 Le scraper est disponible sur PyPI : [helia-etat-reseaux](https://pypi.org/project/helia-etat-reseaux/)
