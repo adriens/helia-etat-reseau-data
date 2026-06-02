@@ -22,6 +22,8 @@ const builtAt = new Date().toLocaleString('fr-NC', {
 
 const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.cwd(), '..') })
   .toString().trim();
+const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""', { cwd: resolve(process.cwd(), '..') })
+  .toString().trim();
 ---
 
 <html lang="fr">
@@ -47,6 +49,9 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
       .btn:hover { opacity: .85; }
       .btn-primary { background: #7c3aed; color: #fff; }
       .btn-secondary { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; }
+      .btn-tour { background: #1a1535; border: 1px solid #4c3f8a; color: #a78bfa; }
+      .btn-tour.running { background: #2d1f69; border-color: #7c3aed; color: #c4b5fd; animation: tour-glow 1.8s ease-in-out infinite; }
+      @keyframes tour-glow { 0%,100% { box-shadow: 0 0 0 0 #7c3aed44; } 50% { box-shadow: 0 0 0 4px #7c3aed22; } }
       .list-header { padding: 10px 12px; font-size: .7rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #2d3148; display: flex; align-items: center; gap: 6px; }
       .count-badge { background: #2d3148; color: #94a3b8; padding: 1px 6px; border-radius: 10px; font-size: .7rem; }
       .maintenance-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2d3148 transparent; padding: 8px; display: flex; flex-direction: column; gap: 10px; }
@@ -129,7 +134,10 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
   <body>
     <header class="flex items-center gap-3 px-4 py-2.5 bg-[#1a1d27] border-b border-[#2d3148] shrink-0">
       <div>
-        <h1 class="text-sm font-semibold text-violet-400">Helia NC — Maintenances réseau</h1>
+        <h1 class="text-sm font-semibold text-violet-400">
+          Helia NC — Maintenances réseau
+          {gitTag && <span class="ml-2 text-xs font-mono font-normal text-slate-500 border border-[#2d3148] rounded px-1.5 py-0.5">{gitTag}</span>}
+        </h1>
         <p class="text-xs text-slate-500">
           Construit le {builtAt} ·
           <a href={`https://github.com/adriens/helia-etat-reseau-data/commit/${commitSha}`}
@@ -188,6 +196,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
           </div>
           <button class="btn btn-secondary" id="btn-geolocate"><i class="fa-solid fa-location-crosshairs"></i> Me localiser (50 km)</button>
           <button class="btn btn-secondary" id="btn-reset">Tout afficher</button>
+          <button class="btn btn-tour" id="btn-tour"><i class="fa-solid fa-route"></i> Tour des maintenances</button>
         </div>
         <div class="list-header">
           Maintenances <span class="count-badge" id="count">0</span>
@@ -480,7 +489,8 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         markers.forEach(({ dot }) => { dot.style.width="14px"; dot.style.height="14px"; dot.style.borderWidth="2px"; dot.style.animation=""; });
       }
 
-      function selectMaintenance(id, focusCommune = null) {
+      function selectMaintenance(id, focusCommune = null, fromTour = false) {
+        if (!fromTour) stopTour();
         listEl.querySelectorAll(".mi").forEach(el => el.classList.toggle("active", el.dataset.id === id));
         const activeEl = listEl.querySelector(`.mi[data-id="${id}"]`);
         if (activeEl) activeEl.scrollIntoView({ behavior:"smooth", block:"nearest" });
@@ -498,7 +508,47 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
 
       document.getElementById("detail-close").addEventListener("click", closeDetail);
       backdropEl.addEventListener("click", closeDetail);
-      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); stopTour(); } });
+
+      // ── Tour des maintenances ─────────────────────────────────────────────
+      let tourTimeout = null, tourIndex = 0;
+      const TOUR_DELAY = 4500;
+
+      function updateTourBtn() {
+        const btn = document.getElementById("btn-tour");
+        if (tourTimeout !== null) {
+          btn.innerHTML = `<i class="fa-solid fa-stop"></i> Tour ${tourIndex} / ${displayed.length}`;
+          btn.classList.add("running");
+        } else {
+          btn.innerHTML = `<i class="fa-solid fa-route"></i> Tour des maintenances`;
+          btn.classList.remove("running");
+        }
+      }
+
+      function tourStep() {
+        if (!displayed.length || tourIndex >= displayed.length) { stopTour(); return; }
+        selectMaintenance(displayed[tourIndex].id, null, true);
+        tourIndex++;
+        updateTourBtn();
+        tourTimeout = setTimeout(tourStep, TOUR_DELAY);
+      }
+
+      function startTour() {
+        if (!displayed.length) return;
+        tourIndex = 0;
+        tourStep();
+      }
+
+      function stopTour() {
+        if (tourTimeout === null) return;
+        clearTimeout(tourTimeout);
+        tourTimeout = null;
+        updateTourBtn();
+      }
+
+      document.getElementById("btn-tour").addEventListener("click", () => {
+        if (tourTimeout !== null) stopTour(); else startTour();
+      });
 
       // ── Swipe-down pour fermer le drawer (mobile) ────────────────────────
       let touchStartY = 0;
@@ -507,7 +557,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
 
       // ── Boutons & filtres live ───────────────────────────────────────────
       function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
-      function doFilter() { renderList(applyFilters(allMaintenances)); }
+      function doFilter() { stopTour(); renderList(applyFilters(allMaintenances)); }
 
       document.getElementById("filter-commune").addEventListener("input",   debounce(doFilter, 220));
       document.getElementById("filter-commune").addEventListener("keydown", (e) => { if (e.key === "Enter") doFilter(); });
