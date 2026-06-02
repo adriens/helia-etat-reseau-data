@@ -266,7 +266,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         const diffH = diffMs / 3600000, diffD = diffMs / 86400000;
         if (diffH < 24) return { label: "Aujourd'hui", cls: "rel-today" };
         if (diffD < 2)  return { label: "Demain",      cls: "rel-tomorrow" };
-        if (diffD < 7)  return { label: `Dans ${Math.floor(diffD)} j`, cls: "rel-soon" };
+        if (diffD < 3)  return { label: `Dans ${Math.floor(diffD * 24)}h`, cls: "rel-soon" };
         return { label: `Dans ${Math.floor(diffD)} j`, cls: "rel-later" };
       }
 
