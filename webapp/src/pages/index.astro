@@ -196,6 +196,10 @@ const COMMUNE_POPULATION: Record<string, number> = {
            class="text-slate-400 hover:text-blue-400 px-2 py-1 rounded border border-[#2d3148] hover:border-blue-500 transition-colors">
           <i class="fa-regular fa-calendar"></i> iCal
         </a>
+        <a href="/helia-etat-reseau-data/commune/"
+           class="text-slate-400 hover:text-pink-400 px-2 py-1 rounded border border-[#2d3148] hover:border-pink-500 transition-colors">
+          <i class="fa-solid fa-city"></i> Communes
+        </a>
         <a href="https://github.com/adriens/helia-etat-reseau-data" target="_blank" rel="noopener"
            class="text-slate-400 hover:text-violet-400 px-2 py-1 rounded border border-[#2d3148] hover:border-violet-500 transition-colors">
           <i class="fa-brands fa-github"></i> Data
@@ -784,12 +788,13 @@ const COMMUNE_POPULATION: Record<string, number> = {
           ? `<div class="tp-total-pop"><i class="fa-solid fa-users"></i>Population totale concernée : <strong>${totalPop.toLocaleString('fr-FR')} hab.</strong></div>`
           : '';
         const html = `<div class="tp">
-          <div class="tp-commune"><i class="fa-solid fa-location-dot"></i>${gp.commune}${popHtml}</div>
+          <div class="tp-commune"><i class="fa-solid fa-location-dot"></i><a class="tp-commune-link" href="/helia-etat-reseau-data/commune/${encodeURIComponent(gp.commune)}/" target="_blank">${gp.commune}</a>${popHtml}</div>
           <div class="tp-svcs">${svcs}</div>
           ${totalPopHtml}
           <div class="tp-foot">
             <span class="tp-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
             <span class="tp-dates">${fmtShort(m.timestamp_debut)} → ${fmtShort(m.timestamp_fin)}</span>
+            <a class="tp-id" href="/helia-etat-reseau-data/intervention/${m.id}" target="_blank" title="Voir le détail de l'intervention"><i class="fa-solid fa-fingerprint"></i>${m.id}</a>
           </div></div>`;
         tourActivePopup = new maplibregl.Popup({
           closeButton: false, closeOnClick: false, offset: 22,
@@ -926,6 +931,11 @@ const COMMUNE_POPULATION: Record<string, number> = {
   .tp-impact.imp-20 { color: #fed7aa; }
   .tp-impact.imp-ad { color: #fde68a; }
   .tp-dates { font-size: .7rem; color: #94a3b8; }
+  .tp-commune-link { color: inherit; text-decoration: none; border-bottom: 1px dotted #e5009f55; transition: border-color .15s, color .15s; }
+  .tp-commune-link:hover { color: #fb7cc2; border-bottom-color: #e5009f; }
+  .tp-id { font-family: monospace; font-size: .7rem; font-weight: 700; color: #e5009f; background: #2a0820; border: 1px solid #e5009f55; padding: 2px 8px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; margin-left: auto; white-space: nowrap; transition: border-color .15s, background .15s; }
+  .tp-id:hover { border-color: #e5009f; background: #3d0025; }
+  .tp-id i { font-size: .6rem; }
   .tp-total-pop { display: flex; align-items: center; gap: 6px; padding: 6px 12px 8px; font-size: .75rem; color: #cbd5e1; border-top: 1px solid #2d3148; }
   .tp-total-pop i { color: #e5009f; font-size: .72rem; }
   .tp-total-pop strong { color: #f8fafc; }
