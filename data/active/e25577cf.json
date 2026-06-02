@@ -1,6 +1,6 @@
 {
   "id": "e25577cf",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-11T23:00:00+11:00",
   "timestamp_fin": "2026-06-12T05:00:00+11:00",
@@ -29,5 +29,61 @@
   "provinces_concernees": [
     "PROVINCE_NORD",
     "PROVINCE_SUD"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "POYA",
+      "lat": -21.330607,
+      "lon": 165.21035
+    },
+    {
+      "commune": "BOULOUPARIS",
+      "lat": -21.859259,
+      "lon": 166.111898
+    },
+    {
+      "commune": "BOURAIL",
+      "lat": -21.534368,
+      "lon": 165.461729
+    },
+    {
+      "commune": "LA FOA",
+      "lat": -21.722727,
+      "lon": 165.880453
+    },
+    {
+      "commune": "PAITA",
+      "lat": -22.040971,
+      "lon": 166.316636
+    },
+    {
+      "commune": "KAALA-GOMEN",
+      "lat": -20.700238,
+      "lon": 164.51314
+    },
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171
+    },
+    {
+      "commune": "VOH",
+      "lat": -20.868914,
+      "lon": 164.734178
+    },
+    {
+      "commune": "MOINDOU",
+      "lat": -21.625926,
+      "lon": 165.674933
+    },
+    {
+      "commune": "FARINO",
+      "lat": -21.648246,
+      "lon": 165.759219
+    }
+  ],
+  "centroide": {
+    "lat": -21.3834564,
+    "lon": 165.39907069999998
+  }
 }

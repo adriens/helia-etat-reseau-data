@@ -1,6 +1,6 @@
 {
   "id": "33f0342c",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-10T23:00:00+11:00",
   "timestamp_fin": "2026-06-11T05:00:00+11:00",
@@ -31,5 +31,61 @@
     "PROVINCE_SUD",
     "PROVINCE_NORD",
     "ILES_LOYAUTE"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493
+    },
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408
+    },
+    {
+      "commune": "POUEMBOUT",
+      "lat": -21.167138,
+      "lon": 165.000992
+    },
+    {
+      "commune": "NOUMEA",
+      "lat": -22.2578,
+      "lon": 166.45009
+    },
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171
+    },
+    {
+      "commune": "LIFOU",
+      "lat": -20.944989,
+      "lon": 167.238656
+    },
+    {
+      "commune": "OUVEA",
+      "lat": -20.563597,
+      "lon": 166.562699
+    },
+    {
+      "commune": "HOUAILOU",
+      "lat": -21.330198,
+      "lon": 165.549981
+    },
+    {
+      "commune": "PONERIHOUEN",
+      "lat": -21.131155,
+      "lon": 165.315489
+    },
+    {
+      "commune": "PAITA",
+      "lat": -22.040971,
+      "lon": 166.316636
+    }
+  ],
+  "centroide": {
+    "lat": -21.3241083,
+    "lon": 165.83976149999998
+  }
 }

@@ -1,6 +1,6 @@
 {
   "id": "88aadf7a",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-18T23:00:00+11:00",
   "timestamp_fin": "2026-06-19T05:00:00+11:00",
@@ -26,5 +26,46 @@
   "provinces_concernees": [
     "PROVINCE_NORD",
     "ILES_LOYAUTE"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171
+    },
+    {
+      "commune": "KAALA-GOMEN",
+      "lat": -20.700238,
+      "lon": 164.51314
+    },
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408
+    },
+    {
+      "commune": "POUEMBOUT",
+      "lat": -21.167138,
+      "lon": 165.000992
+    },
+    {
+      "commune": "VOH",
+      "lat": -20.868914,
+      "lon": 164.734178
+    },
+    {
+      "commune": "LIFOU",
+      "lat": -20.944989,
+      "lon": 167.238656
+    },
+    {
+      "commune": "OUVEA",
+      "lat": -20.563597,
+      "lon": 166.562699
+    }
+  ],
+  "centroide": {
+    "lat": -20.82492085714286,
+    "lon": 165.32632057142857
+  }
 }

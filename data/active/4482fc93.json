@@ -1,6 +1,6 @@
 {
   "id": "4482fc93",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-18T23:00:00+11:00",
   "timestamp_fin": "2026-06-19T05:00:00+11:00",
@@ -18,5 +18,16 @@
   "est_toute_nc": false,
   "provinces_concernees": [
     "ILES_LOYAUTE"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "LIFOU",
+      "lat": -20.944989,
+      "lon": 167.238656
+    }
+  ],
+  "centroide": {
+    "lat": -20.944989,
+    "lon": 167.238656
+  }
 }

@@ -1,6 +1,6 @@
 {
   "id": "1132dfab",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-08T08:00:00+11:00",
   "timestamp_fin": "2026-06-08T15:00:00+11:00",
@@ -20,5 +20,21 @@
   "est_toute_nc": false,
   "provinces_concernees": [
     "PROVINCE_NORD"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "POINDIMIE",
+      "lat": -20.948387,
+      "lon": 165.175839
+    },
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408
+    }
+  ],
+  "centroide": {
+    "lat": -20.9873245,
+    "lon": 165.0411235
+  }
 }

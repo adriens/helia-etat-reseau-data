@@ -1,6 +1,6 @@
 {
   "id": "f61e72d0",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-15T23:00:00+11:00",
   "timestamp_fin": "2026-06-16T05:00:00+11:00",
@@ -23,5 +23,31 @@
   "provinces_concernees": [
     "PROVINCE_SUD",
     "PROVINCE_NORD"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493
+    },
+    {
+      "commune": "DUMBEA",
+      "lat": -22.126546,
+      "lon": 166.493736
+    },
+    {
+      "commune": "PAITA",
+      "lat": -22.040971,
+      "lon": 166.316636
+    },
+    {
+      "commune": "POYA",
+      "lat": -21.330607,
+      "lon": 165.21035
+    }
+  ],
+  "centroide": {
+    "lat": -21.94344725,
+    "lon": 166.18730375
+  }
 }

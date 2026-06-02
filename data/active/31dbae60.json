@@ -1,6 +1,6 @@
 {
   "id": "31dbae60",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-01T07:30:00+11:00",
   "timestamp_fin": "2026-06-05T16:00:00+11:00",
@@ -20,5 +20,21 @@
   "provinces_concernees": [
     "PROVINCE_SUD",
     "PROVINCE_NORD"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "NOUMEA",
+      "lat": -22.2578,
+      "lon": 166.45009
+    },
+    {
+      "commune": "POUEMBOUT",
+      "lat": -21.167138,
+      "lon": 165.000992
+    }
+  ],
+  "centroide": {
+    "lat": -21.712469,
+    "lon": 165.725541
+  }
 }

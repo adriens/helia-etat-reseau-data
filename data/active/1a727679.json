@@ -1,6 +1,6 @@
 {
   "id": "1a727679",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-01T23:00:00+11:00",
   "timestamp_fin": "2026-06-02T05:00:00+11:00",
@@ -35,5 +35,86 @@
     "PROVINCE_NORD",
     "ILES_LOYAUTE",
     "PROVINCE_SUD"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "HOUAILOU",
+      "lat": -21.330198,
+      "lon": 165.549981
+    },
+    {
+      "commune": "POINDIMIE",
+      "lat": -20.948387,
+      "lon": 165.175839
+    },
+    {
+      "commune": "PONERIHOUEN",
+      "lat": -21.131155,
+      "lon": 165.315489
+    },
+    {
+      "commune": "HIENGHENE",
+      "lat": -20.716141,
+      "lon": 164.845422
+    },
+    {
+      "commune": "LIFOU",
+      "lat": -20.944989,
+      "lon": 167.238656
+    },
+    {
+      "commune": "OUVEA",
+      "lat": -20.563597,
+      "lon": 166.562699
+    },
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493
+    },
+    {
+      "commune": "PAITA",
+      "lat": -22.040971,
+      "lon": 166.316636
+    },
+    {
+      "commune": "NOUMEA",
+      "lat": -22.2578,
+      "lon": 166.45009
+    },
+    {
+      "commune": "POYA",
+      "lat": -21.330607,
+      "lon": 165.21035
+    },
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171
+    },
+    {
+      "commune": "POUM",
+      "lat": -20.262885,
+      "lon": 164.147684
+    },
+    {
+      "commune": "KAALA-GOMEN",
+      "lat": -20.700238,
+      "lon": 164.51314
+    },
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408
+    },
+    {
+      "commune": "VOH",
+      "lat": -20.868914,
+      "lon": 164.734178
+    }
+  ],
+  "centroide": {
+    "lat": -21.126741133333333,
+    "lon": 165.46821573333332
+  }
 }

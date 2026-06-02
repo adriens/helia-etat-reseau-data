@@ -1,6 +1,6 @@
 {
   "id": "b2aeff42",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-04T08:00:00+11:00",
   "timestamp_fin": "2026-06-04T15:00:00+11:00",
@@ -19,5 +19,16 @@
   "est_toute_nc": false,
   "provinces_concernees": [
     "ILES_LOYAUTE"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "MARE",
+      "lat": -21.514954,
+      "lon": 167.970418
+    }
+  ],
+  "centroide": {
+    "lat": -21.514954,
+    "lon": 167.970418
+  }
 }

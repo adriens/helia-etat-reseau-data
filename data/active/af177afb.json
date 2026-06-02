@@ -1,6 +1,6 @@
 {
   "id": "af177afb",
-  "scraped_at": "2026-06-02T07:53:18Z",
+  "scraped_at": "2026-06-02T08:02:40Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-10T08:00:00+11:00",
   "timestamp_fin": "2026-06-10T15:00:00+11:00",
@@ -21,5 +21,31 @@
   "est_toute_nc": false,
   "provinces_concernees": [
     "PROVINCE_SUD"
-  ]
+  ],
+  "communes_geopoints": [
+    {
+      "commune": "BOULOUPARIS",
+      "lat": -21.859259,
+      "lon": 166.111898
+    },
+    {
+      "commune": "LA FOA",
+      "lat": -21.722727,
+      "lon": 165.880453
+    },
+    {
+      "commune": "FARINO",
+      "lat": -21.648246,
+      "lon": 165.759219
+    },
+    {
+      "commune": "PAITA",
+      "lat": -22.040971,
+      "lon": 166.316636
+    }
+  ],
+  "centroide": {
+    "lat": -21.81780075,
+    "lon": 166.01705149999998
+  }
 }
