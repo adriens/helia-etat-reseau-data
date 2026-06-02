@@ -408,13 +408,13 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         });
         byCommune.forEach(({ lat, lon, ms }, commune) => {
           const hasRed    = ms.some(m => m.impact === "COUPURE_30_MIN");
-          const hasOrange = ms.some(m => m.impact !== "COUPURE_30_MIN" && m.impact !== "A_DETERMINER");
-          const dotColor  = hasRed ? "#ef4444" : hasOrange ? "#f97316" : "#eab308";
-          const ringColor = hasRed ? "#fca5a5" : hasOrange ? "#fed7aa" : "#fde68a";
+          const hasOrange = ms.some(m => m.impact === "COUPURE_20_30_MIN");
+          const dotColor  = hasRed ? "#ef4444" : hasOrange ? "#f97316" : "#38bdf8";
+          const ringColor = hasRed ? "#fca5a5" : hasOrange ? "#fed7aa" : "#bae6fd";
           const wrapper = document.createElement("div");
           Object.assign(wrapper.style, { width:"32px", height:"32px", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" });
           const dot = document.createElement("div");
-          Object.assign(dot.style, { width:"12px", height:"12px", background:dotColor, border:`2px solid ${ringColor}`, borderRadius:"50%", transition:"width .2s, height .2s, border-width .2s", boxShadow:`0 0 6px ${dotColor}88` });
+          Object.assign(dot.style, { width:"14px", height:"14px", background:dotColor, border:`2px solid ${ringColor}`, borderRadius:"50%", transition:"width .2s, height .2s, border-width .2s", boxShadow:`0 0 8px ${dotColor}aa` });
           wrapper.appendChild(dot);
           const popup = new maplibregl.Popup({ closeButton:false, closeOnClick:false, offset:14, className:"helia-popup", maxWidth:"260px" })
             .setLngLat([lon, lat]).setHTML(buildPopupHtml(commune, ms));
@@ -477,7 +477,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         detailEl.classList.remove("visible");
         backdropEl.classList.remove("visible");
         listEl.querySelectorAll(".mi").forEach(el => el.classList.remove("active"));
-        markers.forEach(({ dot }) => { dot.style.width="12px"; dot.style.height="12px"; dot.style.borderWidth="2px"; dot.style.animation=""; });
+        markers.forEach(({ dot }) => { dot.style.width="14px"; dot.style.height="14px"; dot.style.borderWidth="2px"; dot.style.animation=""; });
       }
 
       function selectMaintenance(id, focusCommune = null) {
@@ -486,7 +486,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         if (activeEl) activeEl.scrollIntoView({ behavior:"smooth", block:"nearest" });
         markers.forEach(({ dot, ids, commune }) => {
           const selected = focusCommune ? commune === focusCommune : ids.has(id);
-          dot.style.width = selected ? "26px" : "12px"; dot.style.height = selected ? "26px" : "12px";
+          dot.style.width = selected ? "26px" : "14px"; dot.style.height = selected ? "26px" : "14px";
           dot.style.borderWidth = selected ? "3px" : "2px"; dot.style.animation = selected ? "dot-ping 1.4s ease-out infinite" : "";
         });
         const m = displayed.find(x => x.id === id);
