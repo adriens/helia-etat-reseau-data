@@ -660,88 +660,157 @@ const COMMUNE_POPULATION: Record<string, number> = {
         if (!_ctx) return;
         cancelAnimationFrame(_arcAnimId);
         const color = ARC_COLORS_CSS[impact] ?? ARC_COLORS_CSS.A_DETERMINER;
-        const N = 80, t0 = performance.now();
+        const N = 120, t0 = performance.now();
+        const sparks = []; // particle system
+
+        function spawnSparks(x, y, n) {
+          for (let i = 0; i < n; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const s = 0.4 + Math.random() * 2.2;
+            sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 0.6,
+                          life: 1, decay: 0.04 + Math.random() * 0.05,
+                          r: 0.8 + Math.random() * 1.8 });
+          }
+        }
 
         function frame() {
-          const dpr = devicePixelRatio || 1;
-          const t   = Math.min((performance.now() - t0) / TOUR_FLY_MS, 1);
-          const pA  = map.project([fromGp.lon, fromGp.lat]);
-          const pB  = map.project([toGp.lon,   toGp.lat]);
-          // ctrl above midpoint: subtract lift (Canvas 2D y increases downward)
+          const dpr  = devicePixelRatio || 1;
+          const now  = performance.now();
+          const t    = Math.min((now - t0) / TOUR_FLY_MS, 1);
+          const pA   = map.project([fromGp.lon, fromGp.lat]);
+          const pB   = map.project([toGp.lon,   toGp.lat]);
           const lift = Math.min(Math.hypot(pB.x - pA.x, pB.y - pA.y) * 0.45, 220);
           const ctrl = { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 - lift };
           const drawn = Math.max(1, Math.floor(t * N));
+          const tip   = _bezier(pA, ctrl, pB, t);
+
+          // Spawn sparks at tip
+          if (t < 1) {
+            if (Math.random() < 0.75) spawnSparks(tip.x, tip.y, 1);
+            if (Math.random() < 0.20) spawnSparks(tip.x, tip.y, 3);
+          }
 
           _ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
           _ctx.save();
           _ctx.scale(dpr, dpr);
           _ctx.lineCap = 'round';
 
-          const tip = _bezier(pA, ctrl, pB, t);
-
-          // — QUEUE de comète —
-          // Seuls les TAIL_LEN derniers segments sont visibles, ils s'effacent vers l'arrière
-          const TAIL_LEN = 28;
+          // ── QUEUE ────────────────────────────────────────────────────────────
+          const TAIL_LEN  = 48;
           const tailEnd   = drawn;
           const tailStart = Math.max(0, tailEnd - TAIL_LEN);
 
-          // Pass glow (large, diffus)
-          _ctx.lineWidth = 7;
+          // Pass 0 — nébuleuse ultra-large (halo extérieur doux)
+          _ctx.lineWidth = 20;
           for (let i = tailStart; i < tailEnd; i++) {
-            const f  = (i - tailStart) / TAIL_LEN;          // 0=queue, 1=tête
+            const f   = (i - tailStart) / TAIL_LEN;
             const pt1 = _bezier(pA, ctrl, pB, i / N);
             const pt2 = _bezier(pA, ctrl, pB, (i + 1) / N);
-            _ctx.globalAlpha = 0.06 + 0.22 * f;
-            _ctx.shadowBlur  = 18 + 20 * f;
+            _ctx.globalAlpha = 0.015 + 0.055 * f;
+            _ctx.shadowBlur  = 40 + 35 * f;
             _ctx.shadowColor = color;
             _ctx.strokeStyle = color;
             _ctx.beginPath(); _ctx.moveTo(pt1.x, pt1.y); _ctx.lineTo(pt2.x, pt2.y); _ctx.stroke();
           }
           _ctx.shadowBlur = 0;
 
-          // Pass core (fin, brillant)
-          _ctx.lineWidth = 2;
+          // Pass 1 — halo coloré intermédiaire
+          _ctx.lineWidth = 7;
           for (let i = tailStart; i < tailEnd; i++) {
-            const f  = (i - tailStart) / TAIL_LEN;
+            const f   = (i - tailStart) / TAIL_LEN;
             const pt1 = _bezier(pA, ctrl, pB, i / N);
             const pt2 = _bezier(pA, ctrl, pB, (i + 1) / N);
-            _ctx.globalAlpha = 0.04 + 0.96 * f;
+            _ctx.globalAlpha = 0.05 + 0.20 * f;
+            _ctx.shadowBlur  = 16 + 22 * f;
+            _ctx.shadowColor = color;
             _ctx.strokeStyle = color;
             _ctx.beginPath(); _ctx.moveTo(pt1.x, pt1.y); _ctx.lineTo(pt2.x, pt2.y); _ctx.stroke();
           }
+          _ctx.shadowBlur = 0;
 
-          // — NOYAU de comète (tête brillante) —
-          // Halo coloré large
-          _ctx.save();
-          _ctx.shadowBlur = 45; _ctx.shadowColor = color;
-          _ctx.globalAlpha = 0.65; _ctx.fillStyle = color;
-          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 10, 0, Math.PI * 2); _ctx.fill();
-          _ctx.shadowBlur = 0; _ctx.restore();
+          // Pass 2 — cœur fin et brillant (blanc-chaud en tête)
+          _ctx.lineWidth = 2.5;
+          for (let i = tailStart; i < tailEnd; i++) {
+            const f   = (i - tailStart) / TAIL_LEN;
+            const pt1 = _bezier(pA, ctrl, pB, i / N);
+            const pt2 = _bezier(pA, ctrl, pB, (i + 1) / N);
+            _ctx.globalAlpha = 0.04 + 0.96 * f;
+            _ctx.strokeStyle = f > 0.80 ? '#ffffff' : color;
+            _ctx.beginPath(); _ctx.moveTo(pt1.x, pt1.y); _ctx.lineTo(pt2.x, pt2.y); _ctx.stroke();
+          }
 
-          // Cœur blanc éclatant
-          _ctx.save();
-          _ctx.shadowBlur = 20; _ctx.shadowColor = '#ffffff';
-          _ctx.globalAlpha = 1; _ctx.fillStyle = '#ffffff';
-          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 4, 0, Math.PI * 2); _ctx.fill();
-          _ctx.shadowBlur = 0; _ctx.restore();
-
-          // — BLOOM à l'impact (t > 0.6) —
-          if (t > 0.6) {
-            const flash = (t - 0.6) / 0.4;
+          // ── PARTICULES / ÉTINCELLES ───────────────────────────────────────────
+          for (let i = sparks.length - 1; i >= 0; i--) {
+            const p = sparks[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.04; // micro gravité
+            p.life -= p.decay;
+            if (p.life <= 0) { sparks.splice(i, 1); continue; }
             _ctx.save();
-            // onde de choc externe
-            _ctx.shadowBlur = 100 * flash; _ctx.shadowColor = color;
-            _ctx.globalAlpha = 0.2 * flash; _ctx.fillStyle = color;
-            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 50 * flash, 0, Math.PI * 2); _ctx.fill();
-            // flash central dense
-            _ctx.shadowBlur = 50 * flash;
-            _ctx.globalAlpha = 0.7 * flash;
-            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 16, 0, Math.PI * 2); _ctx.fill();
+            _ctx.globalAlpha = p.life * 0.85;
+            _ctx.shadowBlur  = 8; _ctx.shadowColor = color;
+            _ctx.fillStyle   = p.life > 0.55 ? '#ffffff' : color;
+            _ctx.beginPath(); _ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); _ctx.fill();
+            _ctx.shadowBlur = 0; _ctx.restore();
+          }
+
+          // ── NOYAU (tête pulsante) ─────────────────────────────────────────────
+          const pulse = 0.5 + 0.5 * Math.sin(now / 75);
+
+          // Couronne externe large — respire
+          _ctx.save();
+          _ctx.shadowBlur = 55 + 25 * pulse; _ctx.shadowColor = color;
+          _ctx.globalAlpha = 0.45 + 0.2 * pulse; _ctx.fillStyle = color;
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 11 + 4 * pulse, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur = 0; _ctx.restore();
+
+          // Couronne interne — teinte blanc-rose
+          _ctx.save();
+          _ctx.shadowBlur = 28; _ctx.shadowColor = '#ffffff';
+          _ctx.globalAlpha = 0.75; _ctx.fillStyle = '#ffd6f0';
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 5.5, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur = 0; _ctx.restore();
+
+          // Point blanc central
+          _ctx.save();
+          _ctx.shadowBlur = 14; _ctx.shadowColor = '#ffffff';
+          _ctx.globalAlpha = 1; _ctx.fillStyle = '#ffffff';
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 2.8, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur = 0; _ctx.restore();
+
+          // ── BLOOM D'IMPACT (t > 0.48) ─────────────────────────────────────────
+          if (t > 0.48) {
+            const flash  = (t - 0.48) / 0.52;
+            const eased  = 1 - Math.pow(1 - flash, 2); // ease-out
+            _ctx.save();
+
+            // Anneau de choc 1
+            _ctx.globalAlpha = (1 - eased) * 0.55;
+            _ctx.strokeStyle = color; _ctx.lineWidth = 2.5;
+            _ctx.shadowBlur = 18 * (1 - eased); _ctx.shadowColor = color;
+            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 90 * eased, 0, Math.PI * 2); _ctx.stroke();
+
+            // Anneau de choc 2 (décalé)
+            if (flash > 0.25) {
+              const f2 = (flash - 0.25) / 0.75;
+              _ctx.globalAlpha = (1 - f2) * 0.35;
+              _ctx.lineWidth = 1.5;
+              _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 140 * f2, 0, Math.PI * 2); _ctx.stroke();
+            }
+
+            // Halo d'impact central
+            _ctx.shadowBlur = 90 * eased; _ctx.shadowColor = color;
+            _ctx.globalAlpha = 0.25 * eased; _ctx.fillStyle = color;
+            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 55 * eased, 0, Math.PI * 2); _ctx.fill();
+
+            // Flash blanc au cœur
+            _ctx.shadowBlur = 40 * eased; _ctx.shadowColor = '#ffffff';
+            _ctx.globalAlpha = 0.6 * eased; _ctx.fillStyle = '#ffffff';
+            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 18 * eased, 0, Math.PI * 2); _ctx.fill();
+
             _ctx.shadowBlur = 0; _ctx.restore();
           }
 
           _ctx.restore();
-
           if (t < 1) _arcAnimId = requestAnimationFrame(frame);
         }
         _arcAnimId = requestAnimationFrame(frame);
