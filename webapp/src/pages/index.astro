@@ -756,12 +756,22 @@ const lastRefresh = lastScrapedAt
         hideTourPopup();
         const gp = m.communes_geopoints[0];
         if (!gp) return;
-        const mk = markers.find(k => k.commune === gp.commune);
-        if (!mk) return;
+        const im   = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
+        const svcs = m.services.map(s => {
+          const sv = SVC[s] ?? { icon: 'fa-circle-nodes', label: s.replace(/_/g,' ') };
+          return `<span class="tp-svc"><i class="fa-solid ${sv.icon}"></i>${sv.label}</span>`;
+        }).join('');
+        const html = `<div class="tp">
+          <div class="tp-commune"><i class="fa-solid fa-location-dot"></i>${gp.commune}</div>
+          <div class="tp-svcs">${svcs}</div>
+          <div class="tp-foot">
+            <span class="tp-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
+            <span class="tp-dates">${fmtShort(m.timestamp_debut)} → ${fmtShort(m.timestamp_fin)}</span>
+          </div></div>`;
         tourActivePopup = new maplibregl.Popup({
-          closeButton: false, closeOnClick: false, offset: 18,
-          className: "helia-popup helia-tour-popup", maxWidth: "300px",
-        }).setLngLat([gp.lon, gp.lat]).setHTML(buildPopupHtml(gp.commune, mk.ms)).addTo(map);
+          closeButton: false, closeOnClick: false, offset: 22,
+          className: "helia-popup helia-tour-popup", maxWidth: "320px",
+        }).setLngLat([gp.lon, gp.lat]).setHTML(html).addTo(map);
       }
 
       function tourStep() {
@@ -879,15 +889,19 @@ const lastRefresh = lastScrapedAt
   .hp-dates { font-size:.73rem; font-weight:600; color:#f1f5f9; margin-bottom:2px; }
   .hp-svcs { font-size:.64rem; color:#94a3b8; }
   .hp-footer { padding:4px 12px 6px; font-size:.6rem; color:#4a4570; text-align:right; font-style:italic; }
-  .helia-tour-popup .maplibregl-popup-content { border-color: #7c3aed !important; box-shadow: 0 0 0 1px #7c3aed55, 0 16px 40px rgba(0,0,0,.85) !important; }
-  .helia-tour-popup .hp-head { background: #1e1050; border-bottom-color: #4c3f8a; }
-  .helia-tour-popup .hp-commune { font-size: 1rem !important; }
-  .helia-tour-popup .hp-count { font-size: .8rem !important; }
-  .helia-tour-popup .hp-dates { font-size: .9rem !important; }
-  .helia-tour-popup .hp-svcs { font-size: .78rem !important; }
-  .helia-tour-popup .hp-body { padding: 8px 14px; }
-  .helia-tour-popup .hp-row { padding: 7px 0; }
-  .helia-tour-popup .hp-dot { width: 10px; height: 10px; margin-top: 4px; }
+  .helia-tour-popup .maplibregl-popup-content { border-color: #e5009f !important; box-shadow: 0 0 0 1px #e5009f55, 0 16px 40px rgba(0,0,0,.9) !important; }
+  .tp { min-width: 230px; }
+  .tp-commune { font-size: 1.05rem; font-weight: 700; color: #f8fafc; padding: 10px 14px 8px; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid #2d3148; }
+  .tp-commune i { color: #e5009f; }
+  .tp-svcs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 8px; }
+  .tp-svc { display: inline-flex; align-items: center; gap: 5px; background: #3d0025; border: 1px solid #e5009f88; color: #fbb6df; font-size: .82rem; font-weight: 600; padding: 5px 11px; border-radius: 20px; }
+  .tp-svc i { color: #e5009f; font-size: .75rem; }
+  .tp-foot { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px 10px; border-top: 1px solid #2d3148; gap: 8px; flex-wrap: wrap; }
+  .tp-impact { font-size: .72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+  .tp-impact.imp-30 { color: #fca5a5; }
+  .tp-impact.imp-20 { color: #fed7aa; }
+  .tp-impact.imp-ad { color: #fde68a; }
+  .tp-dates { font-size: .7rem; color: #94a3b8; }
   @keyframes dot-ping {
     0%   { box-shadow: 0 0 0  0px rgba(255,255,255,.7); }
     60%  { box-shadow: 0 0 0 18px rgba(255,255,255,.15); }
