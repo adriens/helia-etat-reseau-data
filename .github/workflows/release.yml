@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Export DuckDB + release GitHub
+    name: Export DuckDB + Parquet + release GitHub
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -40,6 +40,12 @@ jobs:
           BASE_URL = "https://adriens.github.io/helia-etat-reseau-data"
           NC_TZ    = timezone(timedelta(hours=11))
 
+          IMPACT_LABELS = {
+              "COUPURE_30_MIN":    "⚡ ~30 min",
+              "COUPURE_20_30_MIN": "⚡ 20–30 min",
+              "A_DETERMINER":      "❓ À déterminer",
+          }
+
           def fmt_date(iso):
               if not iso:
                   return "—"
@@ -52,21 +58,12 @@ jobs:
           def int_link(iid):
               return f"[`{iid}`]({BASE_URL}/intervention/{iid}/)"
 
-          def commune_link(c):
-              return f"[{c}]({BASE_URL}/commune/{c}/)"
-
-          def communes_cell(lst, max_shown=3):
-              shown = [commune_link(c) for c in lst[:max_shown]]
+          def commune_links(lst, max_shown=3):
+              shown = [f"[{c}]({BASE_URL}/commune/{c}/)" for c in lst[:max_shown]]
               rest  = len(lst) - max_shown
               if rest > 0:
                   shown.append(f"_+{rest} autres_")
               return ", ".join(shown)
-
-          IMPACT_LABELS = {
-              "COUPURE_30_MIN":    "⚡ ~30 min",
-              "COUPURE_20_30_MIN": "⚡ 20–30 min",
-              "A_DETERMINER":      "❓ À déterminer",
-          }
 
           cur_tag  = os.environ["GITHUB_REF_NAME"]
           tags_raw = subprocess.check_output(
@@ -78,71 +75,98 @@ jobs:
           )
           prev_tag = tags[-1] if tags else None
 
+          def diff_ids(diff_filter, path):
+              if not prev_tag:
+                  return set()
+              out = subprocess.check_output(
+                  ["git", "diff", "--name-only", f"--diff-filter={diff_filter}",
+                   prev_tag, cur_tag, "--", path],
+                  text=True,
+              ).strip()
+              return {pathlib.Path(f).stem for f in out.split("\n") if f}
+
+          added_ids   = diff_ids("A", "data/active/")
+          removed_ids = diff_ids("D", "data/active/")
+
+          # Load current active interventions
+          active_data = []
+          for f in sorted(pathlib.Path("data/active").glob("*.json")):
+              try:
+                  active_data.append(json.loads(f.read_text()))
+              except Exception:
+                  pass
+          active_data.sort(key=lambda d: d.get("timestamp_debut", ""))
+
+          def row(d, show_fin=True):
+              iid   = d.get("id", "?")
+              imp   = IMPACT_LABELS.get(d.get("impact", ""), d.get("impact", "—"))
+              debut = fmt_date(d.get("timestamp_debut", ""))
+              fin   = fmt_date(d.get("timestamp_fin", ""))
+              comms = commune_links(d.get("communes_concernees", []))
+              if show_fin:
+                  return f"| {int_link(iid)} | {comms} | {imp} | {debut} | {fin} |"
+              return f"| {int_link(iid)} | {comms} | {imp} | {debut} |"
+
           lines = []
 
-          if not prev_tag:
-              lines.append("_Première release — pas de comparaison disponible._\n")
-          else:
-              def diff_files(diff_filter, path):
-                  out = subprocess.check_output(
-                      ["git", "diff", "--name-only", f"--diff-filter={diff_filter}",
-                       prev_tag, cur_tag, "--", path],
-                      text=True,
-                  ).strip()
-                  return [f for f in out.split("\n") if f]
+          # ── 1. Interventions archivées ──────────────────────────────────────
+          if removed_ids:
+              lines.append("### 🗄️ Interventions archivées\n")
+              lines.append("| Intervention | Communes | Impact | Fin (NC) |")
+              lines.append("|---|---|---|---|")
+              for iid in removed_ids:
+                  f = f"data/active/{iid}.json"
+                  try:
+                      raw = subprocess.check_output(
+                          ["git", "show", f"{prev_tag}:{f}"], text=True
+                      )
+                      d = json.loads(raw)
+                      lines.append(
+                          f"| {int_link(iid)} | {commune_links(d.get('communes_concernees',[]))} "
+                          f"| {IMPACT_LABELS.get(d.get('impact',''), d.get('impact','—'))} "
+                          f"| {fmt_date(d.get('timestamp_fin',''))} |"
+                      )
+                  except Exception:
+                      lines.append(f"| `{iid}` | — | — | — |")
+              lines.append("")
 
-              added   = diff_files("A", "data/active/")
-              removed = diff_files("D", "data/active/")
+          # ── 2. Nouvelles interventions ──────────────────────────────────────
+          new_data = [d for d in active_data if d.get("id") in added_ids]
+          if new_data:
+              lines.append("### 🆕 Nouvelles interventions\n")
+              lines.append("| Intervention | Communes | Impact | Début (NC) | Fin (NC) |")
+              lines.append("|---|---|---|---|---|")
+              for d in new_data:
+                  lines.append(row(d))
+              lines.append("")
 
-              if added:
-                  lines.append("### ➕ Nouvelles interventions\n")
-                  lines.append("| Intervention | Communes | Impact | Début (NC) |")
-                  lines.append("|---|---|---|---|")
-                  for f in added:
-                      try:
-                          d       = json.loads(pathlib.Path(f).read_text())
-                          iid     = d.get("id", pathlib.Path(f).stem)
-                          impact  = IMPACT_LABELS.get(d.get("impact", ""), d.get("impact", "—"))
-                          debut   = fmt_date(d.get("timestamp_debut", ""))
-                          comms   = communes_cell(d.get("communes_concernees", []))
-                          lines.append(f"| {int_link(iid)} | {comms} | {impact} | {debut} |")
-                      except Exception:
-                          lines.append(f"| `{pathlib.Path(f).stem}` | — | — | — |")
-                  lines.append("")
+          if not removed_ids and not added_ids and prev_tag:
+              lines.append(f"> _Aucun changement de périmètre depuis `{prev_tag}`._\n")
 
-              if removed:
-                  lines.append("### 🗄️ Interventions terminées\n")
-                  lines.append("| Intervention | Communes | Impact | Fin (NC) |")
-                  lines.append("|---|---|---|---|")
-                  for f in removed:
-                      try:
-                          raw    = subprocess.check_output(
-                              ["git", "show", f"{prev_tag}:{f}"], text=True
-                          )
-                          d      = json.loads(raw)
-                          iid    = d.get("id", pathlib.Path(f).stem)
-                          impact = IMPACT_LABELS.get(d.get("impact", ""), d.get("impact", "—"))
-                          fin    = fmt_date(d.get("timestamp_fin", ""))
-                          comms  = communes_cell(d.get("communes_concernees", []))
-                          lines.append(f"| {int_link(iid)} | {comms} | {impact} | {fin} |")
-                      except Exception:
-                          lines.append(f"| `{pathlib.Path(f).stem}` | — | — | — |")
-                  lines.append("")
+          # ── 3. Interventions déjà en cours ─────────────────────────────────
+          ongoing = [d for d in active_data if d.get("id") not in added_ids]
+          if ongoing:
+              lines.append("### 🗂️ Interventions en cours\n")
+              lines.append("| Intervention | Communes | Impact | Début (NC) | Fin (NC) |")
+              lines.append("|---|---|---|---|---|")
+              for d in ongoing:
+                  lines.append(row(d))
+              lines.append("")
 
-              if not added and not removed:
-                  lines.append("_Aucun changement de périmètre d'intervention._\n")
-
-          active_count  = len(list(pathlib.Path("data/active").glob("*.json")))
+          # ── 4. Compteurs ───────────────────────────────────────────────────
           archive_count = len(list(pathlib.Path("data/archive").rglob("*.json"))) \
                           if pathlib.Path("data/archive").exists() else 0
-          lines.append(f"---\n**Interventions actives : {active_count}** · Archives totales : {archive_count}")
+          lines.append(
+              f"---\n**{len(active_data)} interventions actives** · "
+              f"Archives totales : {archive_count}"
+          )
 
           body = "\n".join(lines)
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"body<<BODYEOF\n{body}\nBODYEOF\n")
           PYEOF
 
-      - name: Créer la release GitHub avec asset DuckDB
+      - name: Créer la release GitHub avec assets
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.notes.outputs.body }}
