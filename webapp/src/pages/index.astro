@@ -713,7 +713,8 @@ const lastRefresh = lastScrapedAt
       }
 
       function tourStep() {
-        if (!tourRunning || !displayed.length || tourIndex >= displayed.length) { stopTour(); return; }
+        if (!tourRunning || !displayed.length) { stopTour(); return; }
+        if (tourIndex >= displayed.length) tourIndex = 0;
         const m       = displayed[tourIndex];
         const gp      = m.communes_geopoints[0];
         const bearing = TOUR_BEARINGS[tourIndex % TOUR_BEARINGS.length];
