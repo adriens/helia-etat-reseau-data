@@ -483,10 +483,13 @@ const COMMUNE_POPULATION: Record<string, number> = {
           const hasOrange = ms.some(m => m.impact === "COUPURE_20_30_MIN");
           const dotColor  = hasRed ? "#ef4444" : hasOrange ? "#f97316" : "#38bdf8";
           const ringColor = hasRed ? "#fca5a5" : hasOrange ? "#fed7aa" : "#bae6fd";
+          // Taille log-proportionnelle à la population (min 9px / max 26px)
+          const pop     = COMMUNE_POPULATION[commune] ?? 1000;
+          const dotSize = Math.round(9 + 17 * Math.log(pop / 572) / Math.log(94285 / 572));
           const wrapper = document.createElement("div");
-          Object.assign(wrapper.style, { width:"32px", height:"32px", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" });
+          Object.assign(wrapper.style, { width:"36px", height:"36px", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" });
           const dot = document.createElement("div");
-          Object.assign(dot.style, { width:"14px", height:"14px", background:dotColor, border:`2px solid ${ringColor}`, borderRadius:"50%", transition:"width .2s, height .2s, border-width .2s", boxShadow:`0 0 8px ${dotColor}aa` });
+          Object.assign(dot.style, { width:`${dotSize}px`, height:`${dotSize}px`, background:dotColor, border:`2px solid ${ringColor}`, borderRadius:"50%", transition:"width .2s, height .2s, border-width .2s", boxShadow:`0 0 8px ${dotColor}aa` });
           wrapper.appendChild(dot);
           const popup = new maplibregl.Popup({ closeButton:false, closeOnClick:false, offset:14, className:"helia-popup", maxWidth:"260px" })
             .setLngLat([lon, lat]).setHTML(buildPopupHtml(commune, ms));
@@ -732,7 +735,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
       }
 
       // ── Tour des maintenances ─────────────────────────────────────────────
-      let tourTimeout = null, tourRunning = false, tourIndex = 0, tourActivePopup = null;
+      let tourTimeout = null, tourRunning = false, tourIndex = 0, tourActivePopup = null, tourItems = [];
       const TOUR_DELAY   = 6000;
       const TOUR_FLY_MS  = 2000;
       const TOUR_BEARINGS = [-20, 20, -35, 10, 35, -10, 0, 25, -25, 15];
@@ -740,7 +743,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
       function updateTourBtn() {
         const btn = document.getElementById("btn-tour");
         if (tourRunning) {
-          btn.innerHTML = `<i class="fa-solid fa-stop"></i> Tour ${tourIndex} / ${displayed.length}`;
+          btn.innerHTML = `<i class="fa-solid fa-stop"></i> Tour ${tourIndex} / ${tourItems.length}`;
           btn.classList.add("running");
         } else {
           btn.innerHTML = `<i class="fa-solid fa-route"></i> Tour des maintenances`;
@@ -764,11 +767,9 @@ const COMMUNE_POPULATION: Record<string, number> = {
         if (tourActivePopup) { tourActivePopup.remove(); tourActivePopup = null; }
       }
 
-      function showTourPopup(m) {
-        if (!tourRunning) return;
+      function showTourPopup(m, gp) {
+        if (!tourRunning || !gp) return;
         hideTourPopup();
-        const gp = m.communes_geopoints[0];
-        if (!gp) return;
         const im   = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
         const svcs = m.services.map(s => {
           const sv = SVC[s] ?? { icon: 'fa-circle-nodes', label: s.replace(/_/g,' ') };
@@ -792,23 +793,20 @@ const COMMUNE_POPULATION: Record<string, number> = {
       }
 
       function tourStep() {
-        if (!tourRunning || !displayed.length) { stopTour(); return; }
-        if (tourIndex >= displayed.length) tourIndex = 0;
+        if (!tourRunning || !tourItems.length) { stopTour(); return; }
+        if (tourIndex >= tourItems.length) tourIndex = 0;
         stopPing();
-        const m       = displayed[tourIndex];
-        const gp      = m.communes_geopoints[0];
-        const bearing = TOUR_BEARINGS[tourIndex % TOUR_BEARINGS.length];
+        const { m, gp } = tourItems[tourIndex];
+        const bearing   = TOUR_BEARINGS[tourIndex % TOUR_BEARINGS.length];
 
         if (gp && _prevTourGp) animateTourArc(_prevTourGp, gp, m.impact);
 
-        selectMaintenance(m.id, null, true);
+        selectMaintenance(m.id, gp.commune, true);
         startTourProgressBar(m.id);
 
-        if (gp) {
-          map.flyTo({ center:[gp.lon, gp.lat], zoom:11, pitch:50, bearing, duration:TOUR_FLY_MS, essential:true });
-          setTimeout(() => { showTourPopup(m); if (_thr) animatePing(gp, m.impact); }, TOUR_FLY_MS + 100);
-          _prevTourGp = gp;
-        }
+        map.flyTo({ center:[gp.lon, gp.lat], zoom:11, pitch:50, bearing, duration:TOUR_FLY_MS, essential:true });
+        setTimeout(() => { showTourPopup(m, gp); if (_ctx) animatePing(gp, m.impact); }, TOUR_FLY_MS + 100);
+        _prevTourGp = gp;
 
         tourIndex++;
         updateTourBtn();
@@ -817,9 +815,11 @@ const COMMUNE_POPULATION: Record<string, number> = {
 
       function startTour() {
         if (!displayed.length) return;
+        // Liste plate : une entrée par (intervention × commune)
+        tourItems   = displayed.flatMap(m => m.communes_geopoints.map(gp => ({ m, gp })));
+        if (!tourItems.length) return;
         tourIndex   = 0;
         tourRunning = true;
-        // Arc starts from current map center so step 1 already shows an arc
         const c = map.getCenter();
         _prevTourGp = { lon: c.lng, lat: c.lat };
         try { _initOverlay(); _showCanvas(); } catch(e) { console.warn('Tour overlay init failed:', e); }
