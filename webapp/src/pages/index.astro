@@ -40,7 +40,8 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
     <style>
       body { margin: 0; height: 100dvh; display: flex; flex-direction: column; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; touch-action: none; }
       .layout { display: flex; flex: 1; overflow: hidden; touch-action: none; }
-      aside { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; background: #13151f; border-right: 1px solid #2d3148; overflow: hidden; }
+      aside { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; background: #13151f; border-right: 1px solid #2d3148; overflow: hidden; transition: width .25s ease, height .25s ease, opacity .2s ease; }
+      aside.collapsed { width: 0 !important; min-width: 0; opacity: 0; border: none; }
       .filters { padding: 12px; border-bottom: 1px solid #2d3148; display: flex; flex-direction: column; gap: 8px; }
       .filters label { font-size: .7rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
       .filters select, .filters input { width: 100%; background: #1a1d27; border: 1px solid #2d3148; color: #e2e8f0; padding: 6px 8px; border-radius: 6px; font-size: .8rem; }
@@ -93,8 +94,10 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       .mi-svc.toute-nc i { color:#a78bfa; }
       .empty-state { margin: 24px 6px; padding: 24px 16px; text-align: center; color: #64748b; font-size: .82rem; border: 1px dashed #2d3148; border-radius: 8px; }
       #map { flex: 1; position: relative; touch-action: none; }
-      #btn-fit { position: absolute; top: 10px; left: 10px; z-index: 5; background: #1a1d27cc; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; transition: background .15s, color .15s; backdrop-filter: blur(4px); }
-      #btn-fit:hover { background: #2d3148; color: #a78bfa; }
+      #btn-fit, #btn-sidebar { position: absolute; left: 10px; z-index: 5; background: #1a1d27cc; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; transition: background .15s, color .15s; backdrop-filter: blur(4px); }
+      #btn-fit    { top: 10px; }
+      #btn-sidebar { top: 48px; }
+      #btn-fit:hover, #btn-sidebar:hover { background: #2d3148; color: #a78bfa; }
       #detail-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9; }
       #detail { position: absolute; bottom: 24px; right: 16px; width: 320px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; z-index: 10; display: none; max-height: 60vh; overflow-y: auto; }
       #detail.visible { display: block; }
@@ -123,6 +126,7 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       @keyframes ongoing-bar   { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
       @media (max-width: 700px) {
         aside { width: 100%; height: 45vh; border-right: none; border-bottom: 1px solid #2d3148; }
+        aside.collapsed { width: 100% !important; height: 0 !important; }
         .layout { flex-direction: column; }
         #detail { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-height: 75vh; border-radius: 16px 16px 0 0; border-bottom: none; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); display: block; pointer-events: none; padding: 12px 16px 24px; }
         #detail.visible { transform: translateY(0); pointer-events: auto; }
@@ -208,6 +212,7 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
 
       <div id="map">
         <button id="btn-fit" title="Cadrer sur les résultats"><i class="fa-solid fa-expand"></i></button>
+        <button id="btn-sidebar" title="Masquer/afficher le menu"><i class="fa-solid fa-chevron-left" id="sidebar-chevron"></i></button>
         <div id="detail-backdrop"></div>
         <div id="detail">
           <div class="drawer-handle"></div>
@@ -384,6 +389,16 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
         }
       }
       document.getElementById("btn-fit").addEventListener("click", fitToMarkers);
+
+      // ── Toggle sidebar ────────────────────────────────────────────────────
+      let sidebarVisible = true;
+      document.getElementById("btn-sidebar").addEventListener("click", () => {
+        sidebarVisible = !sidebarVisible;
+        document.querySelector("aside").classList.toggle("collapsed", !sidebarVisible);
+        document.getElementById("sidebar-chevron").className =
+          sidebarVisible ? "fa-solid fa-chevron-left" : "fa-solid fa-chevron-right";
+        setTimeout(() => map.resize(), 260);
+      });
 
       // ── Marqueurs carte ──────────────────────────────────────────────────
       function clearMarkers() { markers.forEach(({ mapMarker }) => mapMarker.remove()); markers = []; }
