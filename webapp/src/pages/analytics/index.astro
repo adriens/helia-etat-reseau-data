@@ -82,16 +82,33 @@ for (const m of active) {
   impactCount[k] = (impactCount[k] ?? 0) + 1;
 }
 
-// Timeline: group by date (NC) – active sorted
-const timelineMap: Record<string, number> = {};
+// Timeline stacked by commune – active
+const timelineCommuneMap: Record<string, Record<string, number>> = {};
 for (const m of active) {
-  if (m.timestamp_debut) {
-    const d = toNCDate(m.timestamp_debut);
-    timelineMap[d] = (timelineMap[d] ?? 0) + 1;
+  if (!m.timestamp_debut) continue;
+  const d = toNCDate(m.timestamp_debut);
+  if (!timelineCommuneMap[d]) timelineCommuneMap[d] = {};
+  for (const c of m.communes_concernees ?? []) {
+    timelineCommuneMap[d][c] = (timelineCommuneMap[d][c] ?? 0) + 1;
   }
 }
-const timelineDates = Object.keys(timelineMap).sort();
-const timelineCounts = timelineDates.map(d => timelineMap[d]);
+const timelineDates = Object.keys(timelineCommuneMap).sort();
+
+const TOP_SERIES = 8;
+const topSeriesNames = topCommunes.slice(0, TOP_SERIES).map(([c]) => c);
+const timelineStacked = {
+  labels: timelineDates,
+  series: topSeriesNames.map(commune => ({
+    name: commune,
+    data: timelineDates.map(d => timelineCommuneMap[d]?.[commune] ?? 0),
+  })),
+  autres: timelineDates.map(d => {
+    const row = timelineCommuneMap[d] ?? {};
+    return Object.entries(row)
+      .filter(([c]) => !topSeriesNames.includes(c))
+      .reduce((s, [, v]) => s + v, 0);
+  }),
+};
 
 // Hour distribution (start hour NC) – active
 const hourData = Array(24).fill(0) as number[];
@@ -140,7 +157,7 @@ const CHART_DATA = {
     labels: Object.keys(impactCount).map(k => IMPACT_LABEL[k] ?? k),
     values: Object.values(impactCount),
   },
-  timeline: { labels: timelineDates, values: timelineCounts },
+  timeline: timelineStacked,
   hours: { labels: Array.from({length:24}, (_, i) => `${String(i).padStart(2,'0')}h`), values: hourData },
   province: { labels: Object.keys(provinceCount), values: Object.values(provinceCount) },
 };
@@ -368,28 +385,41 @@ const KPIS = {
         });
       }
 
-      // ── Timeline bar ──────────────────────────────────────────────────────────
+      // ── Timeline bar stacked by commune ──────────────────────────────────────
       {
-        const ctx = el('chart-timeline').getContext('2d');
-        new Chart(ctx, {
+        const tl = CHART_DATA.timeline;
+        const communeDatasets = tl.series
+          .filter(s => s.data.some(v => v > 0))
+          .map((s, i) => ({
+            label: s.name,
+            data: s.data,
+            backgroundColor: `hsl(${315 - i * 28}, 80%, ${60 - i * 4}%)`,
+            stack: 'a',
+            borderRadius: 2,
+            borderSkipped: false,
+          }));
+        const autresDs = tl.autres.some(v => v > 0) ? [{
+          label: 'Autres',
+          data: tl.autres,
+          backgroundColor: '#37415155',
+          stack: 'a',
+          borderRadius: 2,
+          borderSkipped: false,
+        }] : [];
+        new Chart(el('chart-timeline'), {
           type: 'bar',
           data: {
-            labels: CHART_DATA.timeline.labels,
-            datasets: [{
-              label: 'Interventions',
-              data: CHART_DATA.timeline.values,
-              backgroundColor: gradientBar(ctx, PINK),
-              borderColor: PINK,
-              borderWidth: 1,
-              borderRadius: 4,
-            }],
+            labels: tl.labels,
+            datasets: [...communeDatasets, ...autresDs],
           },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { position: 'bottom', labels: { padding: 10, boxWidth: 10, font: { size: 10 } } },
+            },
             scales: {
-              x: { ticks: { maxRotation: 45, font: { size: 10 } }, grid: { color: '#1e2132' } },
-              y: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
+              x: { stacked: true, ticks: { maxRotation: 45, font: { size: 10 } }, grid: { color: '#1e2132' } },
+              y: { stacked: true, ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
             },
           },
         });
