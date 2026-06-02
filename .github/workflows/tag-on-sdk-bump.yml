@@ -12,24 +12,39 @@ permissions:
 
 jobs:
   tag:
-    name: Bump version MAJOR (schéma JSON)
+    name: Sync lock + bump MAJOR (schéma JSON)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+
+      - name: Mettre à jour uv.lock
+        run: uv lock
+
+      - name: Commiter uv.lock si modifié
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add uv.lock
+          if git diff --cached --quiet; then
+            echo "uv.lock déjà à jour."
+          else
+            git commit -m "chore: sync uv.lock après bump SDK"
+            git push
+          fi
+
       - name: Bump MAJOR et créer le tag
         run: |
           git fetch --tags
-
           LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1)
           LATEST=${LATEST:-v0.0.0}
           MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
-
           NEW_TAG="v$((MAJOR + 1)).0.0"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "$NEW_TAG" -m "MAJOR: bump SDK helia-etat-reseaux"
           git push origin "$NEW_TAG"
-          echo "Tag $NEW_TAG créé (schéma JSON modifié)."
+          echo "Tag $NEW_TAG créé."
