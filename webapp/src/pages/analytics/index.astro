@@ -161,7 +161,6 @@ const KPIS = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Analytics — Helia NC</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       body { margin: 0; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; min-height: 100dvh; }
@@ -284,28 +283,38 @@ const KPIS = {
 
     </div>
 
-    <script define:vars={{ CHART_DATA, BASE }}>
+    <!-- Pass build-time data to module script via window global -->
+    <script define:vars={{ CHART_DATA }}>
+      window.__HELIA_CHARTS__ = CHART_DATA;
+    </script>
+
+    <!-- Chart initialisation (module — imports chart.js from npm) -->
+    <script>
+      import Chart from 'chart.js/auto';
+
+      const CHART_DATA = window.__HELIA_CHARTS__;
+
       Chart.defaults.color = '#64748b';
       Chart.defaults.borderColor = '#2d3148';
       Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
 
-      const PINK    = '#e5009f';
-      const INDIGO  = '#6366f1';
-      const CYAN    = '#22d3ee';
-      const GREEN   = '#4ade80';
-      const AMBER   = '#fbbf24';
-      const VIOLET  = '#a78bfa';
+      const PINK   = '#e5009f';
+      const INDIGO = '#6366f1';
+      const CYAN   = '#22d3ee';
+      const AMBER  = '#fbbf24';
       const IMPACT_COLORS = ['#fca5a5', '#fed7aa', '#fde68a'];
 
-      function gradientBar(ctx, color, alpha = 0.7) {
+      function el(id) { return document.getElementById(id); }
+
+      function gradientBar(ctx, color) {
         const g = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
         g.addColorStop(0, color + 'cc');
         g.addColorStop(1, color + '22');
         return g;
       }
 
-      // ── Impact donut ─────────────────────────────────────────────────────────
-      new Chart(document.getElementById('chart-impact'), {
+      // ── Impact donut ──────────────────────────────────────────────────────────
+      new Chart(el('chart-impact'), {
         type: 'doughnut',
         data: {
           labels: CHART_DATA.impact.labels,
@@ -323,7 +332,7 @@ const KPIS = {
           plugins: {
             legend: { position: 'bottom', labels: { padding: 14, boxWidth: 12 } },
             tooltip: { callbacks: {
-              label: ctx => ` ${ctx.label}: ${ctx.raw} intervention${ctx.raw > 1 ? 's' : ''}`,
+              label: c => ` ${c.label}: ${c.raw} intervention${c.raw > 1 ? 's' : ''}`,
             }},
           },
         },
@@ -331,12 +340,11 @@ const KPIS = {
 
       // ── Top communes horizontal bar ───────────────────────────────────────────
       {
-        const ctx = document.getElementById('chart-communes').getContext('2d');
         const colors = CHART_DATA.topCommunes.labels.map((_, i) => {
           const t = i / Math.max(CHART_DATA.topCommunes.labels.length - 1, 1);
           return `hsl(${315 - t * 60}, 85%, ${60 - t * 15}%)`;
         });
-        new Chart(ctx, {
+        new Chart(el('chart-communes'), {
           type: 'bar',
           data: {
             labels: CHART_DATA.topCommunes.labels,
@@ -354,19 +362,15 @@ const KPIS = {
             plugins: { legend: { display: false } },
             scales: {
               x: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
-              y: {
-                ticks: { font: { size: 11 } },
-                grid: { display: false },
-              },
+              y: { ticks: { font: { size: 11 } }, grid: { display: false } },
             },
           },
         });
       }
 
-      // ── Timeline bar ─────────────────────────────────────────────────────────
+      // ── Timeline bar ──────────────────────────────────────────────────────────
       {
-        const ctx = document.getElementById('chart-timeline').getContext('2d');
-        const bg = gradientBar(ctx, PINK);
+        const ctx = el('chart-timeline').getContext('2d');
         new Chart(ctx, {
           type: 'bar',
           data: {
@@ -374,7 +378,7 @@ const KPIS = {
             datasets: [{
               label: 'Interventions',
               data: CHART_DATA.timeline.values,
-              backgroundColor: bg,
+              backgroundColor: gradientBar(ctx, PINK),
               borderColor: PINK,
               borderWidth: 1,
               borderRadius: 4,
@@ -391,8 +395,8 @@ const KPIS = {
         });
       }
 
-      // ── Province donut ───────────────────────────────────────────────────────
-      new Chart(document.getElementById('chart-province'), {
+      // ── Province donut ────────────────────────────────────────────────────────
+      new Chart(el('chart-province'), {
         type: 'doughnut',
         data: {
           labels: CHART_DATA.province.labels,
@@ -407,26 +411,21 @@ const KPIS = {
         options: {
           responsive: true, maintainAspectRatio: false,
           cutout: '60%',
-          plugins: {
-            legend: { position: 'bottom', labels: { padding: 14, boxWidth: 12 } },
-          },
+          plugins: { legend: { position: 'bottom', labels: { padding: 14, boxWidth: 12 } } },
         },
       });
 
-      // ── Hour distribution bar ────────────────────────────────────────────────
+      // ── Hour distribution bar ─────────────────────────────────────────────────
       {
-        const ctx = document.getElementById('chart-hours').getContext('2d');
-        const bg = CHART_DATA.hours.values.map((v, i) =>
-          v === Math.max(...CHART_DATA.hours.values) ? AMBER : INDIGO + '99'
-        );
-        new Chart(ctx, {
+        const maxHour = Math.max(...CHART_DATA.hours.values);
+        new Chart(el('chart-hours'), {
           type: 'bar',
           data: {
             labels: CHART_DATA.hours.labels,
             datasets: [{
               label: 'Démarrages',
               data: CHART_DATA.hours.values,
-              backgroundColor: bg,
+              backgroundColor: CHART_DATA.hours.values.map(v => v === maxHour ? AMBER : INDIGO + '99'),
               borderRadius: 3,
             }],
           },
