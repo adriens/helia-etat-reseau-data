@@ -1,0 +1,111 @@
+name: Release Data
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Export DuckDB + release GitHub
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installer DuckDB
+        uses: opt-nc/setup-duckdb-action@v1.2.9
+
+      - name: Exporter les données actives en DuckDB
+        run: |
+          duckdb interventions.duckdb \
+            "CREATE TABLE interventions AS
+             SELECT * FROM read_json_auto('data/active/*.json', union_by_name=true);"
+
+      - name: Générer les notes de release (ajouts + archives)
+        id: notes
+        run: |
+          python3 << 'PYEOF'
+          import subprocess, json, os, pathlib, sys
+
+          cur_tag = os.environ['GITHUB_REF_NAME']
+
+          tags_raw = subprocess.check_output(
+              ['git', 'tag', '-l', 'v[0-9]*.[0-9]*.[0-9]*'], text=True
+          ).strip()
+          tags = sorted(
+              [t for t in tags_raw.split('\n') if t and t != cur_tag],
+              key=lambda x: [int(n) for n in x.lstrip('v').split('.')]
+          )
+          prev_tag = tags[-1] if tags else None
+
+          lines = []
+
+          if not prev_tag:
+              lines.append("_Première release._\n")
+          else:
+              def diff_files(diff_filter, path):
+                  out = subprocess.check_output(
+                      ['git', 'diff', '--name-only', f'--diff-filter={diff_filter}',
+                       prev_tag, cur_tag, '--', path],
+                      text=True
+                  ).strip()
+                  return [f for f in out.split('\n') if f]
+
+              added   = diff_files('A', 'data/active/')
+              removed = diff_files('D', 'data/active/')
+
+              if added:
+                  lines.append("### ➕ Nouvelles interventions\n")
+                  for f in added:
+                      try:
+                          d = json.loads(pathlib.Path(f).read_text())
+                          communes = ', '.join(d.get('communes_concernees', [])[:3])
+                          debut    = (d.get('debut') or '')[:10]
+                          impact   = d.get('impact', '?')
+                          iid      = d.get('id', pathlib.Path(f).stem)
+                          lines.append(f"- `{iid}` — **{communes}** | impact : {impact} | début : {debut}")
+                      except Exception:
+                          lines.append(f"- `{pathlib.Path(f).stem}`")
+                  lines.append("")
+
+              if removed:
+                  lines.append("### 🗄️ Interventions terminées / archivées\n")
+                  for f in removed:
+                      try:
+                          raw = subprocess.check_output(
+                              ['git', 'show', f'{prev_tag}:{f}'], text=True
+                          )
+                          d        = json.loads(raw)
+                          communes = ', '.join(d.get('communes_concernees', [])[:3])
+                          iid      = d.get('id', pathlib.Path(f).stem)
+                          fin      = (d.get('fin') or '')[:10]
+                          lines.append(f"- `{iid}` — {communes} | fin : {fin}")
+                      except Exception:
+                          lines.append(f"- `{pathlib.Path(f).stem}`")
+                  lines.append("")
+
+              if not added and not removed:
+                  lines.append("_Aucun changement de périmètre d'intervention._\n")
+
+          active_count  = len(list(pathlib.Path('data/active').glob('*.json')))
+          archive_count = len(list(pathlib.Path('data/archive').rglob('*.json'))) \
+                          if pathlib.Path('data/archive').exists() else 0
+          lines.append(f"---\n**Interventions actives : {active_count}** | Archives totales : {archive_count}")
+
+          body = '\n'.join(lines)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              fh.write(f"body<<BODYEOF\n{body}\nBODYEOF\n")
+          PYEOF
+
+      - name: Créer la release GitHub avec asset DuckDB
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.notes.outputs.body }}
+          files: interventions.duckdb
