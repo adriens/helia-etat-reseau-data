@@ -1,0 +1,7 @@
+[project]
+name = "helia-etat-reseau-data"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "helia-etat-reseaux>=0.5.0",
+]
