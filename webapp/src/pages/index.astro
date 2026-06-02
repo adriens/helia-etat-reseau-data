@@ -31,12 +31,6 @@ const lastScrapedAt = maintenances.length
 const lastRefresh = lastScrapedAt
   ? new Date(lastScrapedAt).toLocaleString('fr-NC', { timeZone:'Pacific/Noumea', weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
   : null;
-const nextRefreshDate = lastScrapedAt ? (() => {
-  const d = new Date(lastScrapedAt);
-  d.setUTCMinutes(0, 0, 0);
-  d.setUTCHours(d.getUTCHours() + 1);
-  return d.toLocaleString('fr-NC', { timeZone:'Pacific/Noumea', hour:'2-digit', minute:'2-digit' });
-})() : null;
 ---
 
 <html lang="fr">
@@ -195,7 +189,7 @@ const nextRefreshDate = lastScrapedAt ? (() => {
         <span>Dernière synchro&nbsp;: <span class="text-slate-400">{lastRefresh}</span></span>
         <span class="text-[#2d3148]">·</span>
         <i class="fa-regular fa-clock text-[#4c3f8a]"></i>
-        <span>Prochain refresh&nbsp;: <span class="text-slate-400">{nextRefreshDate}</span></span>
+        <span>Prochain refresh&nbsp;: <span class="text-slate-400" id="next-refresh">—</span></span>
       </div>
     )}
     <div class="layout">
@@ -680,6 +674,13 @@ const nextRefreshDate = lastScrapedAt ? (() => {
 
       // ── Init ─────────────────────────────────────────────────────────────
       renderList(allMaintenances);
+    </script>
+    <script is:inline>
+      const _n = new Date();
+      _n.setMinutes(0, 0, 0);
+      _n.setHours(_n.getHours() + 1);
+      const _el = document.getElementById('next-refresh');
+      if (_el) _el.textContent = _n.toLocaleTimeString('fr-NC', { timeZone:'Pacific/Noumea', hour:'2-digit', minute:'2-digit' });
     </script>
   </body>
 </html>
