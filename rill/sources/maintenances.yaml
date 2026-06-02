@@ -1,0 +1,4 @@
+type: source
+connector: duckdb
+sql: SELECT * FROM maintenances
+db: ../data/helia.duckdb

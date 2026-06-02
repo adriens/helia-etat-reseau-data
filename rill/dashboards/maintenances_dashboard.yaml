@@ -1,0 +1,27 @@
+type: dashboard
+model: maintenances_flat
+title: "Tableau de bord - Helia Etat Réseau"
+timeseries: timestamp_debut
+dimensions:
+  - name: commune
+    label: Commune
+    column: commune
+  - name: service
+    label: Service
+    column: service
+  - name: impact
+    label: Impact
+    column: impact
+  - name: province
+    label: Province
+    column: provinces_concernees # Note: This might be an array, Rill handles it if configured
+measures:
+  - name: total_maintenances
+    label: Nombre de maintenances
+    expression: count(distinct id)
+  - name: total_communes
+    label: Communes impactées
+    expression: count(distinct commune)
+  - name: avg_duree
+    label: Durée moyenne (min)
+    expression: avg(duree_fenetre_minutes)

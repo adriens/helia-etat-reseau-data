@@ -64,6 +64,14 @@ FROM maintenance_geopoints
 WHERE ST_Distance_Spheroid(geom, ST_Point(166.45, -22.25)) <= 50000;
 ```
 
+## Tableau de bord Rill
+
+Un projet Rill est disponible dans le dossier `rill/` pour visualiser les données de manière interactive.
+
+Pour lancer le tableau de bord localement :
+1. Installez Rill : `curl -sSf https://rilldata.com/install.sh | sh` (si pas déjà fait)
+2. Lancez Rill : `cd rill && rill start`
+
 ## Scraper
 
 Le scraper est disponible sur PyPI : [helia-etat-reseaux](https://pypi.org/project/helia-etat-reseaux/)
