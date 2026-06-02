@@ -102,7 +102,8 @@ function fmtPop(n: number) {
       /* Communes */
       .commune-list { display: flex; flex-direction: column; gap: 6px; }
       .commune-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
-      .commune-name { font-weight: 600; color: #f1f5f9; min-width: 120px; }
+      .commune-name { font-weight: 600; color: #f1f5f9; min-width: 120px; text-decoration: none; border-bottom: 1px dotted #e5009f55; transition: color .15s, border-color .15s; }
+      .commune-name:hover { color: #fb7cc2; border-bottom-color: #e5009f; }
       .province-tag { font-size: .65rem; color: #64748b; background: #1a1d27; border: 1px solid #2d3148; padding: 2px 7px; border-radius: 10px; }
       .commune-pop { margin-left: auto; font-size: .75rem; color: #64748b; display: flex; align-items: center; gap: 4px; }
       .commune-pop i { color: #4c3f8a; font-size: .65rem; }
@@ -190,7 +191,7 @@ function fmtPop(n: number) {
               const province = m.communes_geopoints?.find((g: any) => g.commune === c) ? null : null;
               return (
                 <div class="commune-row">
-                  <span class="commune-name">{c}</span>
+                  <a class="commune-name" href={`/helia-etat-reseau-data/commune/${encodeURIComponent(c)}/`}>{c}</a>
                   {pop != null && (
                     <span class="commune-pop"><i class="fa-solid fa-people-group"></i>{fmtPop(pop)} hab.</span>
                   )}
