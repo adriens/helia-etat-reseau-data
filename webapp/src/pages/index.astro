@@ -58,12 +58,21 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
       .mi.imp-20  { --accent: #f97316; }
       .mi.imp-30  { --accent: #ef4444; }
       .mi.imp-ad  { --accent: #eab308; }
-      .mi-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px 0 16px; }
+      .mi.ongoing { border-color: #7f1d1d !important; }
+      .mi.ongoing::before { background: #ef4444 !important; animation: ongoing-bar 1.8s ease-in-out infinite; }
+      .mi-head { display: flex; align-items: center; justify-content: space-between; padding: 7px 12px 0 16px; gap: 4px; }
       .mi-impact { display: inline-flex; align-items: center; gap: 5px; font-size: .65rem; font-weight: 700; letter-spacing: .03em; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; }
       .mi-impact.imp-20 { background:#431407; border:1px solid #c2410c; color:#fed7aa; }
       .mi-impact.imp-30 { background:#450a0a; border:1px solid #b91c1c; color:#fecaca; }
       .mi-impact.imp-ad { background:#422006; border:1px solid #d97706; color:#fde68a; }
+      .mi-head-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
       .mi-duration { font-size: .65rem; font-weight: 600; color: #7c6aad; background: #1a1535; border: 1px solid #2d2060; padding: 2px 7px; border-radius: 20px; }
+      .rel-badge { font-size: .6rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+      .rel-ongoing  { background: #450a0a; border: 1px solid #b91c1c; color: #fca5a5; animation: ongoing-pulse 1.8s ease-in-out infinite; }
+      .rel-today    { background: #1c1917; border: 1px solid #c2410c; color: #fdba74; }
+      .rel-tomorrow { background: #1c1917; border: 1px solid #d97706; color: #fde68a; }
+      .rel-soon     { background: #1a1d27; border: 1px solid #374151; color: #94a3b8; }
+      .rel-later    { background: #1a1d27; border: 1px solid #1e2235; color: #64748b; }
       .mi-body { padding: 6px 12px 9px 16px; }
       .mi-dates { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: #cbd5e1; font-variant-numeric: tabular-nums; margin-bottom: 5px; }
       .mi-dates i { color: #4c3f8a; width: 12px; text-align: center; }
@@ -79,8 +88,12 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
       .mi-svc.toute-nc i { color:#a78bfa; }
       .empty-state { margin: 24px 6px; padding: 24px 16px; text-align: center; color: #64748b; font-size: .82rem; border: 1px dashed #2d3148; border-radius: 8px; }
       #map { flex: 1; position: relative; touch-action: none; }
+      #btn-fit { position: absolute; top: 10px; left: 10px; z-index: 5; background: #1a1d27cc; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; transition: background .15s, color .15s; backdrop-filter: blur(4px); }
+      #btn-fit:hover { background: #2d3148; color: #a78bfa; }
+      #detail-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9; }
       #detail { position: absolute; bottom: 24px; right: 16px; width: 320px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; z-index: 10; display: none; max-height: 60vh; overflow-y: auto; }
       #detail.visible { display: block; }
+      .drawer-handle { display: none; width: 40px; height: 4px; background: #3d4263; border-radius: 2px; margin: -4px auto 12px; }
       #detail .close-btn { float: right; background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }
       #detail h2 { font-size: .82rem; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
       .detail-id { color: #4c3f8a; font-family: monospace; font-size: .75rem; }
@@ -101,10 +114,15 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
       .detail-pill.pill-svc { background:#13151f; border-color:#2d3756; color:#7c6aad; }
       .detail-pill.pill-province { background:#13151f; border-color:#2d3148; color:#64748b; }
       .detail-footer { font-size:.6rem; color:#374151; text-align:right; margin-top:8px; padding-top:8px; border-top:1px solid #1e2235; font-style:italic; }
+      @keyframes ongoing-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+      @keyframes ongoing-bar   { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
       @media (max-width: 700px) {
         aside { width: 100%; height: 45vh; border-right: none; border-bottom: 1px solid #2d3148; }
         .layout { flex-direction: column; }
-        #detail { width: calc(100% - 32px); right: 16px; }
+        #detail { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-height: 75vh; border-radius: 16px 16px 0 0; border-bottom: none; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); display: block; pointer-events: none; padding: 12px 16px 24px; }
+        #detail.visible { transform: translateY(0); pointer-events: auto; }
+        #detail-backdrop.visible { display: block; }
+        .drawer-handle { display: block; }
       }
     </style>
   </head>
@@ -168,8 +186,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
               <option value="FIBRE_OPTIQUE">Fibre optique</option>
             </select>
           </div>
-          <button class="btn btn-primary" id="btn-search">Filtrer</button>
-          <button class="btn btn-secondary" id="btn-geolocate">📍 Me localiser (50 km)</button>
+          <button class="btn btn-secondary" id="btn-geolocate"><i class="fa-solid fa-location-crosshairs"></i> Me localiser (50 km)</button>
           <button class="btn btn-secondary" id="btn-reset">Tout afficher</button>
         </div>
         <div class="list-header">
@@ -181,7 +198,10 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
       </aside>
 
       <div id="map">
+        <button id="btn-fit" title="Cadrer sur les résultats"><i class="fa-solid fa-expand"></i></button>
+        <div id="detail-backdrop"></div>
         <div id="detail">
+          <div class="drawer-handle"></div>
           <button class="close-btn" id="detail-close">✕</button>
           <h2 id="detail-title">Maintenance</h2>
           <div id="detail-body"></div>
@@ -206,11 +226,9 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         if (e.touches.length > 1) e.preventDefault();
       }, { passive: false });
 
-      // ── Données statiques embarquées ─────────────────────────────────────
       let allMaintenances = maintenances;
       let displayed = [], markers = [];
 
-      // ── Haversine côté client (pour géolocalisation) ─────────────────────
       function haversineKm(lat1, lon1, lat2, lon2) {
         const R = 6371, toRad = d => d * Math.PI / 180;
         const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
@@ -237,6 +255,20 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         const h = Math.floor(min / 60), r = min % 60;
         return r ? `${h}h${String(r).padStart(2,"0")}` : `${h}h`;
       }
+      function normalize(s) {
+        return s.toUpperCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+      }
+      function relativeTime(isoStart, isoEnd) {
+        const now = Date.now(), start = new Date(isoStart).getTime(), end = new Date(isoEnd).getTime();
+        if (now >= start && now <= end) return { label: "En cours", cls: "rel-ongoing" };
+        const diffMs = start - now;
+        if (diffMs <= 0) return null;
+        const diffH = diffMs / 3600000, diffD = diffMs / 86400000;
+        if (diffH < 24) return { label: "Aujourd'hui", cls: "rel-today" };
+        if (diffD < 2)  return { label: "Demain",      cls: "rel-tomorrow" };
+        if (diffD < 7)  return { label: `Dans ${Math.floor(diffD)} j`, cls: "rel-soon" };
+        return { label: `Dans ${Math.floor(diffD)} j`, cls: "rel-later" };
+      }
 
       const SVC = {
         TELEPHONIE_FIXE:          { icon: "fa-phone",         label: "Tél. fixe" },
@@ -253,13 +285,12 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         A_DETERMINER:      { cls: "imp-ad", icon: "fa-circle-question", label: "À déterminer" },
       };
 
-      // ── Filtrage client-side ─────────────────────────────────────────────
       function applyFilters(data) {
-        const commune  = document.getElementById("filter-commune").value.trim().toUpperCase();
+        const commune  = normalize(document.getElementById("filter-commune").value.trim());
         const province = document.getElementById("filter-province").value;
         const service  = document.getElementById("filter-service").value;
         return data.filter(m => {
-          if (commune  && !m.communes_concernees.some(c => c.includes(commune))) return false;
+          if (commune  && !m.communes_concernees.some(c => normalize(c).includes(commune))) return false;
           if (province && !m.provinces_concernees.includes(province)) return false;
           if (service  && !m.services.includes(service)) return false;
           return true;
@@ -267,22 +298,27 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
       }
 
       // ── Rendu liste ──────────────────────────────────────────────────────
-      const listEl   = document.getElementById("maintenance-list");
-      const countEl  = document.getElementById("count");
-      const detailEl = document.getElementById("detail");
+      const listEl      = document.getElementById("maintenance-list");
+      const countEl     = document.getElementById("count");
+      const detailEl    = document.getElementById("detail");
+      const backdropEl  = document.getElementById("detail-backdrop");
       const detailTitle = document.getElementById("detail-title");
       const detailBody  = document.getElementById("detail-body");
 
-      function renderList(data) {
+      let isInitialRender = true;
+
+      function renderList(data, resetView = false) {
         displayed = data;
-        countEl.textContent = data.length;
+        countEl.textContent = `${data.length} / ${allMaintenances.length}`;
         if (!data.length) {
           listEl.innerHTML = '<div class="empty-state"><i class="fa-solid fa-satellite-dish" style="font-size:1.4rem;display:block;margin-bottom:8px;color:#4c3f8a"></i>Aucune maintenance trouvée.</div>';
           clearMarkers();
           return;
         }
         listEl.innerHTML = data.map(m => {
-          const im = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
+          const im      = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
+          const rel     = relativeTime(m.timestamp_debut, m.timestamp_fin);
+          const ongoing = rel?.cls === "rel-ongoing";
           const communes = m.communes_concernees;
           const locLabel = m.est_toute_nc
             ? "Toute la Nouvelle-Calédonie"
@@ -293,13 +329,16 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
             const sv = SVC[s] ?? { icon: "fa-circle-nodes", label: s.replace(/_/g," ") };
             return `<span class="mi-svc"><i class="fa-solid ${sv.icon}"></i>${sv.label}</span>`;
           }).join("");
-          const toutNC = m.est_toute_nc
-            ? `<span class="mi-svc toute-nc"><i class="fa-solid fa-earth-oceania"></i>Toute NC</span>` : "";
+          const toutNC   = m.est_toute_nc ? `<span class="mi-svc toute-nc"><i class="fa-solid fa-earth-oceania"></i>Toute NC</span>` : "";
+          const relBadge = rel ? `<span class="rel-badge ${rel.cls}">${rel.label}</span>` : "";
           return `
-          <div class="mi ${im.cls}" data-id="${m.id}">
+          <div class="mi ${im.cls}${ongoing ? " ongoing" : ""}" data-id="${m.id}">
             <div class="mi-head">
               <span class="mi-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
-              <span class="mi-duration"><i class="fa-regular fa-clock" style="margin-right:3px"></i>${fmtDuration(m.duree_fenetre_minutes)}</span>
+              <div class="mi-head-right">
+                ${relBadge}
+                <span class="mi-duration"><i class="fa-regular fa-clock" style="margin-right:3px"></i>${fmtDuration(m.duree_fenetre_minutes)}</span>
+              </div>
             </div>
             <div class="mi-body">
               <div class="mi-dates">
@@ -320,7 +359,22 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
           el.addEventListener("click", () => selectMaintenance(el.dataset.id))
         );
         renderMarkers(data);
+        if (!isInitialRender && !resetView) fitToMarkers();
+        isInitialRender = false;
       }
+
+      // ── Fit bounds ───────────────────────────────────────────────────────
+      function fitToMarkers() {
+        if (!markers.length) return;
+        const lngs = [], lats = [];
+        markers.forEach(({ mapMarker }) => { const ll = mapMarker.getLngLat(); lngs.push(ll.lng); lats.push(ll.lat); });
+        if (lngs.length === 1) {
+          map.flyTo({ center: [lngs[0], lats[0]], zoom: 9, duration: 600 });
+        } else {
+          map.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 60, duration: 600, maxZoom: 10 });
+        }
+      }
+      document.getElementById("btn-fit").addEventListener("click", fitToMarkers);
 
       // ── Marqueurs carte ──────────────────────────────────────────────────
       function clearMarkers() { markers.forEach(({ mapMarker }) => mapMarker.remove()); markers = []; }
@@ -357,16 +411,13 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
           const hasOrange = ms.some(m => m.impact !== "COUPURE_30_MIN" && m.impact !== "A_DETERMINER");
           const dotColor  = hasRed ? "#ef4444" : hasOrange ? "#f97316" : "#eab308";
           const ringColor = hasRed ? "#fca5a5" : hasOrange ? "#fed7aa" : "#fde68a";
-
           const wrapper = document.createElement("div");
           Object.assign(wrapper.style, { width:"32px", height:"32px", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" });
           const dot = document.createElement("div");
           Object.assign(dot.style, { width:"12px", height:"12px", background:dotColor, border:`2px solid ${ringColor}`, borderRadius:"50%", transition:"width .2s, height .2s, border-width .2s", boxShadow:`0 0 6px ${dotColor}88` });
           wrapper.appendChild(dot);
-
           const popup = new maplibregl.Popup({ closeButton:false, closeOnClick:false, offset:14, className:"helia-popup", maxWidth:"260px" })
             .setLngLat([lon, lat]).setHTML(buildPopupHtml(commune, ms));
-
           let hideTimer = null;
           wrapper.addEventListener("mouseenter", () => { clearTimeout(hideTimer); dot.style.transform="scale(1.6)"; popup.addTo(map); });
           wrapper.addEventListener("mouseleave", () => { hideTimer = setTimeout(() => { dot.style.transform="scale(1)"; popup.remove(); }, 150); });
@@ -374,24 +425,17 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
             const target = ms.slice().sort((a,b) => a.timestamp_debut.localeCompare(b.timestamp_debut))[0];
             selectMaintenance(target.id, commune);
           });
-
-          const mapMarker = new maplibregl.Marker({ element:wrapper, anchor:"center" })
-            .setLngLat([lon, lat]).addTo(map);
+          const mapMarker = new maplibregl.Marker({ element:wrapper, anchor:"center" }).setLngLat([lon, lat]).addTo(map);
           markers.push({ mapMarker, dot, ids: new Set(ms.map(m => m.id)), commune });
         });
       }
 
-      // ── Sélection maintenance ────────────────────────────────────────────
-      const PROVINCE_LABEL = {
-        PROVINCE_SUD:  "Province Sud",
-        PROVINCE_NORD: "Province Nord",
-        ILES_LOYAUTE:  "Îles Loyauté",
-      };
+      // ── Sélection / Détail ───────────────────────────────────────────────
+      const PROVINCE_LABEL = { PROVINCE_SUD: "Province Sud", PROVINCE_NORD: "Province Nord", ILES_LOYAUTE: "Îles Loyauté" };
 
       function fmtCoupure(m) {
         if (m.duree_coupure_min_minutes == null) return "À déterminer";
-        if (m.duree_coupure_min_minutes === m.duree_coupure_max_minutes)
-          return `${m.duree_coupure_min_minutes} min`;
+        if (m.duree_coupure_min_minutes === m.duree_coupure_max_minutes) return `${m.duree_coupure_min_minutes} min`;
         return `${m.duree_coupure_min_minutes}–${m.duree_coupure_max_minutes} min`;
       }
 
@@ -400,35 +444,18 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         const communes  = m.communes_concernees;
         const provinces = m.provinces_concernees.map(p => PROVINCE_LABEL[p] ?? p);
         const services  = m.services.map(s => SVC[s]?.label ?? s.replace(/_/g," "));
-
         const communesPills = m.est_toute_nc
           ? `<span class="detail-pill pill-nc"><i class="fa-solid fa-earth-oceania"></i> Toute la Nouvelle-Calédonie</span>`
           : communes.map(c => `<span class="detail-pill">${c}</span>`).join("");
-
         detailTitle.innerHTML = `
           <span class="detail-id">#${m.id}</span>
-          <span class="detail-impact-badge ${im.cls}">
-            <i class="fa-solid ${im.icon}"></i> ${im.label}
-          </span>`;
-
+          <span class="detail-impact-badge ${im.cls}"><i class="fa-solid ${im.icon}"></i> ${im.label}</span>`;
         detailBody.innerHTML = `
           <div class="detail-section">
-            <div class="detail-row">
-              <span class="detail-label"><i class="fa-regular fa-calendar-days"></i> Début</span>
-              <span class="detail-value">${fmtDate(m.timestamp_debut)}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label"><i class="fa-regular fa-calendar-check"></i> Fin</span>
-              <span class="detail-value">${fmtDate(m.timestamp_fin)}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label"><i class="fa-regular fa-clock"></i> Fenêtre</span>
-              <span class="detail-value">${fmtDuration(m.duree_fenetre_minutes)}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label"><i class="fa-solid fa-bolt"></i> Coupure</span>
-              <span class="detail-value">${fmtCoupure(m)}</span>
-            </div>
+            <div class="detail-row"><span class="detail-label"><i class="fa-regular fa-calendar-days"></i> Début</span><span class="detail-value">${fmtDate(m.timestamp_debut)}</span></div>
+            <div class="detail-row"><span class="detail-label"><i class="fa-regular fa-calendar-check"></i> Fin</span><span class="detail-value">${fmtDate(m.timestamp_fin)}</span></div>
+            <div class="detail-row"><span class="detail-label"><i class="fa-regular fa-clock"></i> Fenêtre</span><span class="detail-value">${fmtDuration(m.duree_fenetre_minutes)}</span></div>
+            <div class="detail-row"><span class="detail-label"><i class="fa-solid fa-bolt"></i> Coupure</span><span class="detail-value">${fmtCoupure(m)}</span></div>
           </div>
           <div class="detail-section">
             <div class="detail-section-title"><i class="fa-solid fa-location-dot"></i> Communes (${communes.length})</div>
@@ -442,9 +469,15 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
             <div class="detail-section-title"><i class="fa-solid fa-map"></i> Provinces</div>
             <div class="detail-pills">${provinces.map(p => `<span class="detail-pill pill-province">${p}</span>`).join("")}</div>
           </div>
-          <div class="detail-footer">
-            Scrape · ${fmtDate(m.scraped_at_local)}
-          </div>`;
+          <div class="detail-footer">Scrape · ${fmtDate(m.scraped_at_local)}</div>`;
+      }
+
+      function openDetail(m) { renderDetail(m); detailEl.classList.add("visible"); backdropEl.classList.add("visible"); }
+      function closeDetail() {
+        detailEl.classList.remove("visible");
+        backdropEl.classList.remove("visible");
+        listEl.querySelectorAll(".mi").forEach(el => el.classList.remove("active"));
+        markers.forEach(({ dot }) => { dot.style.width="12px"; dot.style.height="12px"; dot.style.borderWidth="2px"; dot.style.animation=""; });
       }
 
       function selectMaintenance(id, focusCommune = null) {
@@ -453,40 +486,40 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         if (activeEl) activeEl.scrollIntoView({ behavior:"smooth", block:"nearest" });
         markers.forEach(({ dot, ids, commune }) => {
           const selected = focusCommune ? commune === focusCommune : ids.has(id);
-          dot.style.width       = selected ? "26px" : "12px";
-          dot.style.height      = selected ? "26px" : "12px";
-          dot.style.borderWidth = selected ? "3px"  : "2px";
-          dot.style.animation   = selected ? "dot-ping 1.4s ease-out infinite" : "";
+          dot.style.width = selected ? "26px" : "12px"; dot.style.height = selected ? "26px" : "12px";
+          dot.style.borderWidth = selected ? "3px" : "2px"; dot.style.animation = selected ? "dot-ping 1.4s ease-out infinite" : "";
         });
         const m = displayed.find(x => x.id === id);
         if (!m) return;
-        renderDetail(m);
-        detailEl.classList.add("visible");
-        if (focusCommune) {
-          const gp = m.communes_geopoints.find(g => g.commune === focusCommune);
-          if (gp) map.flyTo({ center:[gp.lon, gp.lat], zoom:9, duration:800 });
-        } else {
-          const gp = m.communes_geopoints[0];
-          if (gp) map.flyTo({ center:[gp.lon, gp.lat], zoom:9, duration:800 });
-        }
+        openDetail(m);
+        const gp = focusCommune ? m.communes_geopoints.find(g => g.commune === focusCommune) : m.communes_geopoints[0];
+        if (gp) map.flyTo({ center:[gp.lon, gp.lat], zoom:9, duration:800 });
       }
 
-      document.getElementById("detail-close").addEventListener("click", () => {
-        detailEl.classList.remove("visible");
-        listEl.querySelectorAll(".mi").forEach(el => el.classList.remove("active"));
-        markers.forEach(({ dot }) => { dot.style.width="12px"; dot.style.height="12px"; dot.style.borderWidth="2px"; dot.style.animation=""; });
-      });
+      document.getElementById("detail-close").addEventListener("click", closeDetail);
+      backdropEl.addEventListener("click", closeDetail);
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
 
-      // ── Boutons ──────────────────────────────────────────────────────────
-      document.getElementById("btn-search").addEventListener("click", () => {
-        renderList(applyFilters(allMaintenances));
-      });
+      // ── Swipe-down pour fermer le drawer (mobile) ────────────────────────
+      let touchStartY = 0;
+      detailEl.addEventListener("touchstart", (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+      detailEl.addEventListener("touchend",   (e) => { if (e.changedTouches[0].clientY - touchStartY > 60) closeDetail(); }, { passive: true });
+
+      // ── Boutons & filtres live ───────────────────────────────────────────
+      function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+      function doFilter() { renderList(applyFilters(allMaintenances)); }
+
+      document.getElementById("filter-commune").addEventListener("input",   debounce(doFilter, 220));
+      document.getElementById("filter-commune").addEventListener("keydown", (e) => { if (e.key === "Enter") doFilter(); });
+      document.getElementById("filter-province").addEventListener("change", doFilter);
+      document.getElementById("filter-service").addEventListener("change",  doFilter);
 
       document.getElementById("btn-reset").addEventListener("click", () => {
-        document.getElementById("filter-commune").value = "";
+        document.getElementById("filter-commune").value  = "";
         document.getElementById("filter-province").value = "";
-        document.getElementById("filter-service").value = "";
-        renderList(allMaintenances);
+        document.getElementById("filter-service").value  = "";
+        renderList(allMaintenances, true);
+        map.flyTo({ center:[165.8, -21.2], zoom:6.2, duration:600 });
       });
 
       document.getElementById("btn-geolocate").addEventListener("click", () => {
@@ -494,9 +527,7 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
         navigator.geolocation.getCurrentPosition(
           ({ coords }) => {
             const nearby = allMaintenances.filter(m =>
-              m.communes_geopoints.some(({ lat, lon }) =>
-                haversineKm(coords.latitude, coords.longitude, lat, lon) <= 50
-              )
+              m.communes_geopoints.some(({ lat, lon }) => haversineKm(coords.latitude, coords.longitude, lat, lon) <= 50)
             );
             renderList(nearby);
             map.flyTo({ center:[coords.longitude, coords.latitude], zoom:9 });
