@@ -740,8 +740,9 @@ const lastRefresh = lastScrapedAt
         tourIndex   = 0;
         tourRunning = true;
         _prevTourGp = null;
-        _initOverlay();
-        _showCanvas();
+        if (typeof THREE !== 'undefined') {
+          try { _initOverlay(); _showCanvas(); } catch(e) { console.warn('Tour overlay init failed:', e); }
+        }
         tourStep();
       }
 
