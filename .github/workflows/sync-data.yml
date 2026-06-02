@@ -18,6 +18,8 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
 
       - name: Sync maintenances
         run: uv run --with helia-etat-reseaux python scripts/sync_data.py --data-dir data
