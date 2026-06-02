@@ -22,11 +22,13 @@ jobs:
       - name: Installer DuckDB
         uses: opt-nc/setup-duckdb-action@v1.2.9
 
-      - name: Exporter les données actives en DuckDB
+      - name: Exporter les données actives (DuckDB + Parquet)
         run: |
-          duckdb interventions.duckdb \
-            "CREATE TABLE interventions AS
-             SELECT * FROM read_json_auto('data/active/*.json', union_by_name=true);"
+          duckdb interventions.duckdb "
+            CREATE TABLE interventions AS
+              SELECT * FROM read_json_auto('data/active/*.json', union_by_name=true);
+            COPY interventions TO 'interventions.parquet' (FORMAT PARQUET);
+          "
 
       - name: Générer les notes de release
         id: notes
@@ -144,4 +146,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.notes.outputs.body }}
-          files: interventions.duckdb
+          files: |
+            interventions.duckdb
+            interventions.parquet
