@@ -82,16 +82,33 @@ for (const m of active) {
   impactCount[k] = (impactCount[k] ?? 0) + 1;
 }
 
-// Timeline: group by date (NC) – active sorted
-const timelineMap: Record<string, number> = {};
+// Timeline stacked by commune – active
+const timelineCommuneMap: Record<string, Record<string, number>> = {};
 for (const m of active) {
-  if (m.timestamp_debut) {
-    const d = toNCDate(m.timestamp_debut);
-    timelineMap[d] = (timelineMap[d] ?? 0) + 1;
+  if (!m.timestamp_debut) continue;
+  const d = toNCDate(m.timestamp_debut);
+  if (!timelineCommuneMap[d]) timelineCommuneMap[d] = {};
+  for (const c of m.communes_concernees ?? []) {
+    timelineCommuneMap[d][c] = (timelineCommuneMap[d][c] ?? 0) + 1;
   }
 }
-const timelineDates = Object.keys(timelineMap).sort();
-const timelineCounts = timelineDates.map(d => timelineMap[d]);
+const timelineDates = Object.keys(timelineCommuneMap).sort();
+
+const TOP_SERIES = 8;
+const topSeriesNames = topCommunes.slice(0, TOP_SERIES).map(([c]) => c);
+const timelineStacked = {
+  labels: timelineDates,
+  series: topSeriesNames.map(commune => ({
+    name: commune,
+    data: timelineDates.map(d => timelineCommuneMap[d]?.[commune] ?? 0),
+  })),
+  autres: timelineDates.map(d => {
+    const row = timelineCommuneMap[d] ?? {};
+    return Object.entries(row)
+      .filter(([c]) => !topSeriesNames.includes(c))
+      .reduce((s, [, v]) => s + v, 0);
+  }),
+};
 
 // Hour distribution (start hour NC) – active
 const hourData = Array(24).fill(0) as number[];
@@ -133,6 +150,19 @@ for (const m of active) {
   durationBuckets[bucket] = (durationBuckets[bucket] ?? 0) + 1;
 }
 
+// ── Commune 3D geo data for deck.gl ──────────────────────────────────────────
+const communeGeoMap: Record<string, [number, number]> = {};
+for (const m of active) {
+  for (const gp of m.communes_geopoints ?? []) {
+    if (gp.commune && gp.lat != null && gp.lon != null) {
+      communeGeoMap[gp.commune] = [gp.lon, gp.lat];
+    }
+  }
+}
+const DECK_DATA = Object.entries(communeCount)
+  .filter(([c]) => communeGeoMap[c])
+  .map(([commune, count]) => ({ commune, position: communeGeoMap[commune], count }));
+
 // Pass serialisable data to client
 const CHART_DATA = {
   topCommunes: { labels: topCommunes.map(([c]) => c), values: topCommunes.map(([, n]) => n) },
@@ -140,7 +170,7 @@ const CHART_DATA = {
     labels: Object.keys(impactCount).map(k => IMPACT_LABEL[k] ?? k),
     values: Object.values(impactCount),
   },
-  timeline: { labels: timelineDates, values: timelineCounts },
+  timeline: timelineStacked,
   hours: { labels: Array.from({length:24}, (_, i) => `${String(i).padStart(2,'0')}h`), values: hourData },
   province: { labels: Object.keys(provinceCount), values: Object.values(provinceCount) },
 };
@@ -161,6 +191,8 @@ const KPIS = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Analytics — Helia NC</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <script is:inline src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       body { margin: 0; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; min-height: 100dvh; }
@@ -204,6 +236,14 @@ const KPIS = {
       .chart-wrap.h-sm { height:220px; }
       .chart-wrap.h-md { height:300px; }
       .chart-wrap.h-lg { height:340px; }
+
+      /* Deck.gl map card */
+      .map3d-card { background:#13151f; border:1px solid #2d3148; border-radius:12px; overflow:hidden; margin-bottom:16px; }
+      .map3d-header { padding:16px 20px 12px; display:flex; align-items:center; gap:6px; }
+      .map3d-header i { color:#e5009f; }
+      .map3d-hint { margin-left:auto; font-size:.65rem; color:#334155; font-weight:400; text-transform:none; letter-spacing:0; }
+      #deck-map { height:520px; width:100%; }
+      .maplibregl-canvas { border-radius:0; }
     </style>
   </head>
   <body>
@@ -281,11 +321,21 @@ const KPIS = {
         </div>
       </div>
 
+      <!-- 3D Commune Map -->
+      <div class="map3d-card">
+        <div class="map3d-header chart-title">
+          <i class="fa-solid fa-map-location-dot"></i> Carte 3D — Interventions par commune
+          <span class="map3d-hint">scroll = zoom · maj+glisser = pivoter</span>
+        </div>
+        <div id="deck-map"></div>
+      </div>
+
     </div>
 
     <!-- Pass build-time data to module script via window global -->
-    <script define:vars={{ CHART_DATA }}>
+    <script define:vars={{ CHART_DATA, DECK_DATA }}>
       window.__HELIA_CHARTS__ = CHART_DATA;
+      window.__HELIA_DECK__   = DECK_DATA;
     </script>
 
     <!-- Chart initialisation (module — imports chart.js from npm) -->
@@ -368,28 +418,41 @@ const KPIS = {
         });
       }
 
-      // ── Timeline bar ──────────────────────────────────────────────────────────
+      // ── Timeline bar stacked by commune ──────────────────────────────────────
       {
-        const ctx = el('chart-timeline').getContext('2d');
-        new Chart(ctx, {
+        const tl = CHART_DATA.timeline;
+        const communeDatasets = tl.series
+          .filter(s => s.data.some(v => v > 0))
+          .map((s, i) => ({
+            label: s.name,
+            data: s.data,
+            backgroundColor: `hsl(${315 - i * 28}, 80%, ${60 - i * 4}%)`,
+            stack: 'a',
+            borderRadius: 2,
+            borderSkipped: false,
+          }));
+        const autresDs = tl.autres.some(v => v > 0) ? [{
+          label: 'Autres',
+          data: tl.autres,
+          backgroundColor: '#37415155',
+          stack: 'a',
+          borderRadius: 2,
+          borderSkipped: false,
+        }] : [];
+        new Chart(el('chart-timeline'), {
           type: 'bar',
           data: {
-            labels: CHART_DATA.timeline.labels,
-            datasets: [{
-              label: 'Interventions',
-              data: CHART_DATA.timeline.values,
-              backgroundColor: gradientBar(ctx, PINK),
-              borderColor: PINK,
-              borderWidth: 1,
-              borderRadius: 4,
-            }],
+            labels: tl.labels,
+            datasets: [...communeDatasets, ...autresDs],
           },
           options: {
             responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { position: 'bottom', labels: { padding: 10, boxWidth: 10, font: { size: 10 } } },
+            },
             scales: {
-              x: { ticks: { maxRotation: 45, font: { size: 10 } }, grid: { color: '#1e2132' } },
-              y: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
+              x: { stacked: true, ticks: { maxRotation: 45, font: { size: 10 } }, grid: { color: '#1e2132' } },
+              y: { stacked: true, ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
             },
           },
         });
@@ -437,6 +500,70 @@ const KPIS = {
               y: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
             },
           },
+        });
+      }
+    </script>
+
+    <!-- deck.gl 3D map (module — imports from npm) -->
+    <script>
+      import { MapboxOverlay } from '@deck.gl/mapbox';
+      import { ColumnLayer }   from '@deck.gl/layers';
+
+      const data = window.__HELIA_DECK__;
+      if (!data?.length) {
+        document.getElementById('deck-map').innerHTML =
+          '<p style="color:#475569;padding:24px;font-size:.85rem">Aucune donnée géographique disponible.</p>';
+      } else {
+        const maxCount = Math.max(...data.map(d => d.count));
+
+        const map = new maplibregl.Map({
+          container: 'deck-map',
+          style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+          center: [165.5, -21.3],
+          zoom: 7,
+          pitch: 50,
+          bearing: -15,
+          antialias: true,
+        });
+
+        map.on('load', () => {
+          const overlay = new MapboxOverlay({
+            interleaved: false,
+            layers: [
+              new ColumnLayer({
+                id: 'communes-3d',
+                data,
+                diskResolution: 16,
+                radius: 6500,
+                extruded: true,
+                getPosition: d => d.position,
+                getElevation: d => (d.count / maxCount) * 180000,
+                getFillColor: d => {
+                  const t = d.count / maxCount;
+                  return [
+                    Math.round(229 * t + 99  * (1 - t)),
+                    Math.round(0   * t + 102 * (1 - t)),
+                    Math.round(159 * t + 241 * (1 - t)),
+                    210,
+                  ];
+                },
+                pickable: true,
+                autoHighlight: true,
+                highlightColor: [255, 255, 255, 90],
+                material: { ambient: 0.35, diffuse: 0.6, shininess: 32, specularColor: [230, 0, 160] },
+              }),
+            ],
+            getTooltip: ({ object }) => object && {
+              html: `<b>${object.commune}</b><br>${object.count} intervention${object.count > 1 ? 's' : ''}`,
+              style: {
+                background: '#13151f', color: '#e2e8f0',
+                border: '1px solid #2d3148', borderRadius: '8px',
+                padding: '8px 12px', fontSize: '13px',
+                fontFamily: 'system-ui, sans-serif',
+              },
+            },
+          });
+          map.addControl(overlay);
         });
       }
     </script>
