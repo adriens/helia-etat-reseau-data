@@ -97,6 +97,14 @@ const builtAt = new Date().toLocaleString('fr-NC', {
         <p class="text-xs text-slate-500">Données statiques · construit le {builtAt} · helia.nc/etat-du-reseau</p>
       </div>
       <nav class="ml-auto flex gap-2 text-xs">
+        <a href="/helia-etat-reseau-data/rss.xml"
+           class="text-slate-400 hover:text-orange-400 px-2 py-1 rounded border border-[#2d3148] hover:border-orange-500 transition-colors">
+          <i class="fa-solid fa-rss"></i> RSS
+        </a>
+        <a href="/helia-etat-reseau-data/calendar.ics"
+           class="text-slate-400 hover:text-blue-400 px-2 py-1 rounded border border-[#2d3148] hover:border-blue-500 transition-colors">
+          <i class="fa-regular fa-calendar"></i> iCal
+        </a>
         <a href="https://github.com/adriens/helia-etat-reseau-data" target="_blank" rel="noopener"
            class="text-slate-400 hover:text-violet-400 px-2 py-1 rounded border border-[#2d3148] hover:border-violet-500 transition-colors">
           <i class="fa-brands fa-github"></i> Data
