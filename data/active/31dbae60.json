@@ -1,0 +1,24 @@
+{
+  "id": "31dbae60",
+  "scraped_at": "2026-06-02T07:53:18Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-06-01T07:30:00+11:00",
+  "timestamp_fin": "2026-06-05T16:00:00+11:00",
+  "duree_fenetre_minutes": 6270,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "NOUMEA",
+    "POUEMBOUT"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 2,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD",
+    "PROVINCE_NORD"
+  ]
+}

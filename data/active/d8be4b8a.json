@@ -1,0 +1,23 @@
+{
+  "id": "d8be4b8a",
+  "scraped_at": "2026-06-02T07:53:18Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-06-17T09:00:00+11:00",
+  "timestamp_fin": "2026-06-17T13:00:00+11:00",
+  "duree_fenetre_minutes": 240,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "LA FOA"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ]
+}

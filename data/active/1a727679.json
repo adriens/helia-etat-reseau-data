@@ -1,0 +1,39 @@
+{
+  "id": "1a727679",
+  "scraped_at": "2026-06-02T07:53:18Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-06-01T23:00:00+11:00",
+  "timestamp_fin": "2026-06-02T05:00:00+11:00",
+  "duree_fenetre_minutes": 360,
+  "duree_coupure_min_minutes": 20,
+  "duree_coupure_max_minutes": 30,
+  "communes_concernees": [
+    "HOUAILOU",
+    "POINDIMIE",
+    "PONERIHOUEN",
+    "HIENGHENE",
+    "LIFOU",
+    "OUVEA",
+    "MONT-DORE",
+    "PAITA",
+    "NOUMEA",
+    "POYA",
+    "KOUMAC",
+    "POUM",
+    "KAALA-GOMEN",
+    "KONE",
+    "VOH"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE"
+  ],
+  "impact": "COUPURE_20_30_MIN",
+  "nb_communes_concernees": 15,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD",
+    "ILES_LOYAUTE",
+    "PROVINCE_SUD"
+  ]
+}

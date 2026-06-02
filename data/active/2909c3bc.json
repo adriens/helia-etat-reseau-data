@@ -1,0 +1,27 @@
+{
+  "id": "2909c3bc",
+  "scraped_at": "2026-06-02T07:53:18Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-06-17T23:00:00+11:00",
+  "timestamp_fin": "2026-06-18T05:00:00+11:00",
+  "duree_fenetre_minutes": 360,
+  "duree_coupure_min_minutes": 30,
+  "duree_coupure_max_minutes": 30,
+  "communes_concernees": [
+    "BOURAIL",
+    "POYA",
+    "POINDIMIE",
+    "PONERIHOUEN"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE",
+    "INTERNET_MOBILE"
+  ],
+  "impact": "COUPURE_30_MIN",
+  "nb_communes_concernees": 4,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD",
+    "PROVINCE_NORD"
+  ]
+}
