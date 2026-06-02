@@ -28,82 +28,115 @@ jobs:
             "CREATE TABLE interventions AS
              SELECT * FROM read_json_auto('data/active/*.json', union_by_name=true);"
 
-      - name: Générer les notes de release (ajouts + archives)
+      - name: Générer les notes de release
         id: notes
         run: |
           python3 << 'PYEOF'
-          import subprocess, json, os, pathlib, sys
+          import subprocess, json, os, pathlib
+          from datetime import datetime, timezone, timedelta
 
-          cur_tag = os.environ['GITHUB_REF_NAME']
+          BASE_URL = "https://adriens.github.io/helia-etat-reseau-data"
+          NC_TZ    = timezone(timedelta(hours=11))
 
+          def fmt_date(iso):
+              if not iso:
+                  return "—"
+              try:
+                  dt = datetime.fromisoformat(iso).astimezone(NC_TZ)
+                  return dt.strftime("%d/%m/%Y %H:%M")
+              except Exception:
+                  return iso[:16]
+
+          def int_link(iid):
+              return f"[`{iid}`]({BASE_URL}/intervention/{iid}/)"
+
+          def commune_link(c):
+              return f"[{c}]({BASE_URL}/commune/{c}/)"
+
+          def communes_cell(lst, max_shown=3):
+              shown = [commune_link(c) for c in lst[:max_shown]]
+              rest  = len(lst) - max_shown
+              if rest > 0:
+                  shown.append(f"_+{rest} autres_")
+              return ", ".join(shown)
+
+          IMPACT_LABELS = {
+              "COUPURE_30_MIN":    "⚡ ~30 min",
+              "COUPURE_20_30_MIN": "⚡ 20–30 min",
+              "A_DETERMINER":      "❓ À déterminer",
+          }
+
+          cur_tag  = os.environ["GITHUB_REF_NAME"]
           tags_raw = subprocess.check_output(
-              ['git', 'tag', '-l', 'v[0-9]*.[0-9]*.[0-9]*'], text=True
+              ["git", "tag", "-l", "v[0-9]*.[0-9]*.[0-9]*"], text=True
           ).strip()
           tags = sorted(
-              [t for t in tags_raw.split('\n') if t and t != cur_tag],
-              key=lambda x: [int(n) for n in x.lstrip('v').split('.')]
+              [t for t in tags_raw.split("\n") if t and t != cur_tag],
+              key=lambda x: [int(n) for n in x.lstrip("v").split(".")],
           )
           prev_tag = tags[-1] if tags else None
 
           lines = []
 
           if not prev_tag:
-              lines.append("_Première release._\n")
+              lines.append("_Première release — pas de comparaison disponible._\n")
           else:
               def diff_files(diff_filter, path):
                   out = subprocess.check_output(
-                      ['git', 'diff', '--name-only', f'--diff-filter={diff_filter}',
-                       prev_tag, cur_tag, '--', path],
-                      text=True
+                      ["git", "diff", "--name-only", f"--diff-filter={diff_filter}",
+                       prev_tag, cur_tag, "--", path],
+                      text=True,
                   ).strip()
-                  return [f for f in out.split('\n') if f]
+                  return [f for f in out.split("\n") if f]
 
-              added   = diff_files('A', 'data/active/')
-              removed = diff_files('D', 'data/active/')
+              added   = diff_files("A", "data/active/")
+              removed = diff_files("D", "data/active/")
 
-              BASE_URL = "https://adriens.github.io/helia-etat-reseau-data"
-
-          if added:
+              if added:
                   lines.append("### ➕ Nouvelles interventions\n")
+                  lines.append("| Intervention | Communes | Impact | Début (NC) |")
+                  lines.append("|---|---|---|---|")
                   for f in added:
                       try:
-                          d = json.loads(pathlib.Path(f).read_text())
-                          communes = ', '.join(d.get('communes_concernees', [])[:3])
-                          debut    = (d.get('debut') or '')[:10]
-                          impact   = d.get('impact', '?')
-                          iid      = d.get('id', pathlib.Path(f).stem)
-                          url      = f"{BASE_URL}/intervention/{iid}/"
-                          lines.append(f"- [{iid}]({url}) — **{communes}** | impact : {impact} | début : {debut}")
+                          d       = json.loads(pathlib.Path(f).read_text())
+                          iid     = d.get("id", pathlib.Path(f).stem)
+                          impact  = IMPACT_LABELS.get(d.get("impact", ""), d.get("impact", "—"))
+                          debut   = fmt_date(d.get("timestamp_debut", ""))
+                          comms   = communes_cell(d.get("communes_concernees", []))
+                          lines.append(f"| {int_link(iid)} | {comms} | {impact} | {debut} |")
                       except Exception:
-                          lines.append(f"- `{pathlib.Path(f).stem}`")
+                          lines.append(f"| `{pathlib.Path(f).stem}` | — | — | — |")
                   lines.append("")
 
               if removed:
-                  lines.append("### 🗄️ Interventions terminées / archivées\n")
+                  lines.append("### 🗄️ Interventions terminées\n")
+                  lines.append("| Intervention | Communes | Impact | Fin (NC) |")
+                  lines.append("|---|---|---|---|")
                   for f in removed:
                       try:
-                          raw = subprocess.check_output(
-                              ['git', 'show', f'{prev_tag}:{f}'], text=True
+                          raw    = subprocess.check_output(
+                              ["git", "show", f"{prev_tag}:{f}"], text=True
                           )
-                          d        = json.loads(raw)
-                          communes = ', '.join(d.get('communes_concernees', [])[:3])
-                          iid      = d.get('id', pathlib.Path(f).stem)
-                          fin      = (d.get('fin') or '')[:10]
-                          lines.append(f"- `{iid}` — {communes} | fin : {fin}")
+                          d      = json.loads(raw)
+                          iid    = d.get("id", pathlib.Path(f).stem)
+                          impact = IMPACT_LABELS.get(d.get("impact", ""), d.get("impact", "—"))
+                          fin    = fmt_date(d.get("timestamp_fin", ""))
+                          comms  = communes_cell(d.get("communes_concernees", []))
+                          lines.append(f"| {int_link(iid)} | {comms} | {impact} | {fin} |")
                       except Exception:
-                          lines.append(f"- `{pathlib.Path(f).stem}`")
+                          lines.append(f"| `{pathlib.Path(f).stem}` | — | — | — |")
                   lines.append("")
 
               if not added and not removed:
                   lines.append("_Aucun changement de périmètre d'intervention._\n")
 
-          active_count  = len(list(pathlib.Path('data/active').glob('*.json')))
-          archive_count = len(list(pathlib.Path('data/archive').rglob('*.json'))) \
-                          if pathlib.Path('data/archive').exists() else 0
-          lines.append(f"---\n**Interventions actives : {active_count}** | Archives totales : {archive_count}")
+          active_count  = len(list(pathlib.Path("data/active").glob("*.json")))
+          archive_count = len(list(pathlib.Path("data/archive").rglob("*.json"))) \
+                          if pathlib.Path("data/archive").exists() else 0
+          lines.append(f"---\n**Interventions actives : {active_count}** · Archives totales : {archive_count}")
 
-          body = '\n'.join(lines)
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+          body = "\n".join(lines)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"body<<BODYEOF\n{body}\nBODYEOF\n")
           PYEOF
 
