@@ -20,6 +20,7 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.13"
+          enable-cache: false
 
       - name: Sync maintenances
         run: uv run --with helia-etat-reseaux python scripts/sync_data.py --data-dir data
