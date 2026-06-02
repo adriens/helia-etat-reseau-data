@@ -12,6 +12,8 @@ jobs:
   sync:
     name: Scrape et synchroniser les maintenances
     runs-on: ubuntu-latest
+    env:
+      TZ: Pacific/Noumea
     steps:
       - uses: actions/checkout@v6
 
