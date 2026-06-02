@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { readdir, readFile } from 'fs/promises';
 import { resolve } from 'path';
+import { execSync } from 'child_process';
 
 // Lecture des JSONs au build time depuis data/active/
 const dataDir = resolve(process.cwd(), '../data/active');
@@ -18,6 +19,9 @@ const builtAt = new Date().toLocaleString('fr-NC', {
   day: '2-digit', month: 'short', year: 'numeric',
   hour: '2-digit', minute: '2-digit',
 });
+
+const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.cwd(), '..') })
+  .toString().trim();
 ---
 
 <html lang="fr">
@@ -108,7 +112,13 @@ const builtAt = new Date().toLocaleString('fr-NC', {
     <header class="flex items-center gap-3 px-4 py-2.5 bg-[#1a1d27] border-b border-[#2d3148] shrink-0">
       <div>
         <h1 class="text-sm font-semibold text-violet-400">Helia NC — Maintenances réseau</h1>
-        <p class="text-xs text-slate-500">Données statiques · construit le {builtAt} · helia.nc/etat-du-reseau</p>
+        <p class="text-xs text-slate-500">
+          Construit le {builtAt} ·
+          <a href={`https://github.com/adriens/helia-etat-reseau-data/commit/${commitSha}`}
+             target="_blank" rel="noopener"
+             class="font-mono hover:text-violet-400 transition-colors">{commitSha}</a>
+          · helia.nc/etat-du-reseau
+        </p>
       </div>
       <nav class="ml-auto flex gap-2 text-xs">
         <a href="/helia-etat-reseau-data/rss.xml"
