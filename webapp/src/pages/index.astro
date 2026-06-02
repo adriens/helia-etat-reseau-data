@@ -53,6 +53,8 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       .btn-tour { background: #1a1535; border: 1px solid #4c3f8a; color: #a78bfa; }
       .btn-tour.running { background: #2d1f69; border-color: #7c3aed; color: #c4b5fd; animation: tour-glow 1.8s ease-in-out infinite; }
       @keyframes tour-glow { 0%,100% { box-shadow: 0 0 0 0 #7c3aed44; } 50% { box-shadow: 0 0 0 4px #7c3aed22; } }
+      .tour-progress { position: absolute; bottom: 0; left: 4px; right: 0; height: 3px; overflow: hidden; border-radius: 0 0 10px 0; background: #1e1535; }
+      .tour-progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, #6d28d9, #a78bfa); border-radius: 2px; }
       .list-header { padding: 10px 12px; font-size: .7rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #2d3148; display: flex; align-items: center; gap: 6px; }
       .count-badge { background: #2d3148; color: #94a3b8; padding: 1px 6px; border-radius: 10px; font-size: .7rem; }
       .maintenance-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2d3148 transparent; padding: 8px; display: flex; flex-direction: column; gap: 10px; }
@@ -140,7 +142,11 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       <div>
         <h1 class="text-sm font-semibold text-violet-400">
           Helia NC — Maintenances réseau
-          {gitTag && <span class="ml-2 text-xs font-mono font-normal text-slate-500 border border-[#2d3148] rounded px-1.5 py-0.5">{gitTag}</span>}
+          {gitTag && (
+            <a href={`https://github.com/adriens/helia-etat-reseau-data/releases/tag/${gitTag}`}
+               target="_blank" rel="noopener"
+               class="ml-2 text-xs font-mono font-normal text-slate-500 border border-[#2d3148] rounded px-1.5 py-0.5 hover:text-violet-400 hover:border-violet-500 transition-colors">{gitTag}</a>
+          )}
         </h1>
         <p class="text-xs text-slate-500">
           Construit le {builtAt} ·
@@ -347,6 +353,7 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
           const relBadge = rel ? `<span class="rel-badge ${rel.cls}">${rel.label}</span>` : "";
           return `
           <div class="mi ${im.cls}${ongoing ? " ongoing" : ""}" data-id="${m.id}">
+            <div class="tour-progress"><div class="tour-progress-bar"></div></div>
             <div class="mi-head">
               <span class="mi-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
               <div class="mi-head-right">
@@ -526,7 +533,7 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); stopTour(); } });
 
       // ── Tour des maintenances ─────────────────────────────────────────────
-      let tourTimeout = null, tourIndex = 0;
+      let tourTimeout = null, tourIndex = 0, tourActivePopup = null;
       const TOUR_DELAY = 4500;
 
       function updateTourBtn() {
@@ -540,9 +547,40 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
         }
       }
 
+      function startTourProgressBar(id) {
+        const el = listEl.querySelector(`.mi[data-id="${id}"]`);
+        if (!el) return;
+        const bar = el.querySelector(".tour-progress-bar");
+        if (!bar) return;
+        bar.style.transition = "none";
+        bar.style.width = "0%";
+        bar.offsetHeight;
+        bar.style.transition = `width ${TOUR_DELAY}ms linear`;
+        bar.style.width = "100%";
+      }
+
+      function hideTourPopup() {
+        if (tourActivePopup) { tourActivePopup.remove(); tourActivePopup = null; }
+      }
+
+      function showTourPopup(m) {
+        hideTourPopup();
+        const gp = m.communes_geopoints[0];
+        if (!gp) return;
+        const mk = markers.find(k => k.commune === gp.commune);
+        if (!mk) return;
+        tourActivePopup = new maplibregl.Popup({
+          closeButton: false, closeOnClick: false, offset: 18,
+          className: "helia-popup helia-tour-popup", maxWidth: "300px",
+        }).setLngLat([gp.lon, gp.lat]).setHTML(buildPopupHtml(gp.commune, mk.ms)).addTo(map);
+      }
+
       function tourStep() {
         if (!displayed.length || tourIndex >= displayed.length) { stopTour(); return; }
-        selectMaintenance(displayed[tourIndex].id, null, true);
+        const m = displayed[tourIndex];
+        selectMaintenance(m.id, null, true);
+        startTourProgressBar(m.id);
+        showTourPopup(m);
         tourIndex++;
         updateTourBtn();
         tourTimeout = setTimeout(tourStep, TOUR_DELAY);
@@ -558,6 +596,7 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
         if (tourTimeout === null) return;
         clearTimeout(tourTimeout);
         tourTimeout = null;
+        hideTourPopup();
         updateTourBtn();
       }
 
@@ -622,6 +661,15 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
   .hp-dates { font-size:.73rem; font-weight:600; color:#f1f5f9; margin-bottom:2px; }
   .hp-svcs { font-size:.64rem; color:#94a3b8; }
   .hp-footer { padding:4px 12px 6px; font-size:.6rem; color:#4a4570; text-align:right; font-style:italic; }
+  .helia-tour-popup .maplibregl-popup-content { border-color: #7c3aed !important; box-shadow: 0 0 0 1px #7c3aed55, 0 16px 40px rgba(0,0,0,.85) !important; }
+  .helia-tour-popup .hp-head { background: #1e1050; border-bottom-color: #4c3f8a; }
+  .helia-tour-popup .hp-commune { font-size: 1rem !important; }
+  .helia-tour-popup .hp-count { font-size: .8rem !important; }
+  .helia-tour-popup .hp-dates { font-size: .9rem !important; }
+  .helia-tour-popup .hp-svcs { font-size: .78rem !important; }
+  .helia-tour-popup .hp-body { padding: 8px 14px; }
+  .helia-tour-popup .hp-row { padding: 7px 0; }
+  .helia-tour-popup .hp-dot { width: 10px; height: 10px; margin-top: 4px; }
   @keyframes dot-ping {
     0%   { box-shadow: 0 0 0  0px rgba(255,255,255,.7); }
     60%  { box-shadow: 0 0 0 18px rgba(255,255,255,.15); }
