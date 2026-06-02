@@ -1,0 +1,445 @@
+---
+import '../../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
+
+const BASE = '/helia-etat-reseau-data';
+
+// ── Load data ────────────────────────────────────────────────────────────────
+const activeDir  = resolve(process.cwd(), '../data/active');
+const archiveDir = resolve(process.cwd(), '../data/archive');
+
+const activeFiles = (await readdir(activeDir).catch(() => [])).filter(f => f.endsWith('.json'));
+const active: any[] = await Promise.all(
+  activeFiles.map(async f => JSON.parse(await readFile(resolve(activeDir, f), 'utf-8')))
+);
+
+const archiveFiles: string[] = [];
+try {
+  for (const year of await readdir(archiveDir)) {
+    for (const f of (await readdir(resolve(archiveDir, year)).catch(() => []))) {
+      if (f.endsWith('.json')) archiveFiles.push(resolve(archiveDir, year, f));
+    }
+  }
+} catch {}
+const archived: any[] = await Promise.all(
+  archiveFiles.map(async f => JSON.parse(await readFile(f, 'utf-8')))
+);
+
+const all = [...active, ...archived];
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const COMMUNE_POPULATION: Record<string, number> = {
+  BELEP:867, BOULOUPARIS:3315, BOURAIL:5531, CANALA:3701,
+  DUMBEA:35873, FARINO:712, HIENGHENE:2454, HOUAILOU:3955,
+  'ILE DES PINS':2037, 'KAALA-GOMEN':1803, KONE:8144, KOUAOUA:1304,
+  KOUMAC:3981, 'LA FOA':3552, LIFOU:9195, MARE:5757, MOINDOU:681,
+  'MONT-DORE':27620, NOUMEA:94285, OUEGOA:2118, OUVEA:3401,
+  PAITA:24563, POINDIMIE:5006, PONERIHOUEN:2420, POUEBO:2144,
+  POUEMBOUT:2752, POUM:1435, POYA:2802, SARRAMEA:572,
+  THIO:2524, TOUHO:2380, VOH:2856, YATE:1667,
+};
+const PROVINCE_MAP: Record<string, string> = {
+  BOULOUPARIS:'Sud', BOURAIL:'Sud', DUMBEA:'Sud', FARINO:'Sud',
+  'ILE DES PINS':'Sud', 'LA FOA':'Sud', MOINDOU:'Sud', 'MONT-DORE':'Sud',
+  NOUMEA:'Sud', PAITA:'Sud', SARRAMEA:'Sud', THIO:'Sud', YATE:'Sud',
+  BELEP:'Nord', CANALA:'Nord', HIENGHENE:'Nord', HOUAILOU:'Nord',
+  'KAALA-GOMEN':'Nord', KONE:'Nord', KOUAOUA:'Nord', KOUMAC:'Nord',
+  OUEGOA:'Nord', POINDIMIE:'Nord', PONERIHOUEN:'Nord', POUEBO:'Nord',
+  POUEMBOUT:'Nord', POUM:'Nord', POYA:'Nord', TOUHO:'Nord', VOH:'Nord',
+  LIFOU:'Îles Loyauté', MARE:'Îles Loyauté', OUVEA:'Îles Loyauté',
+};
+const IMPACT_LABEL: Record<string, string> = {
+  COUPURE_30_MIN: '⚡ ~30 min',
+  COUPURE_20_30_MIN: '⚡ 20–30 min',
+  A_DETERMINER: '❓ À déterminer',
+};
+const NC_OFFSET = 11 * 60;
+
+function toNCDate(iso: string) {
+  const d = new Date(new Date(iso).getTime() + NC_OFFSET * 60000);
+  return d.toISOString().slice(0, 10);
+}
+function toNCHour(iso: string) {
+  return new Date(new Date(iso).getTime() + NC_OFFSET * 60000).getUTCHours();
+}
+
+// ── Compute stats ─────────────────────────────────────────────────────────────
+
+// Commune frequency (active only)
+const communeCount: Record<string, number> = {};
+for (const m of active) {
+  for (const c of m.communes_concernees ?? []) {
+    communeCount[c] = (communeCount[c] ?? 0) + 1;
+  }
+}
+const topCommunes = Object.entries(communeCount).sort((a, b) => b[1] - a[1]).slice(0, 12);
+
+// Impact breakdown (active)
+const impactCount: Record<string, number> = {};
+for (const m of active) {
+  const k = m.impact ?? 'A_DETERMINER';
+  impactCount[k] = (impactCount[k] ?? 0) + 1;
+}
+
+// Timeline: group by date (NC) – active sorted
+const timelineMap: Record<string, number> = {};
+for (const m of active) {
+  if (m.timestamp_debut) {
+    const d = toNCDate(m.timestamp_debut);
+    timelineMap[d] = (timelineMap[d] ?? 0) + 1;
+  }
+}
+const timelineDates = Object.keys(timelineMap).sort();
+const timelineCounts = timelineDates.map(d => timelineMap[d]);
+
+// Hour distribution (start hour NC) – active
+const hourData = Array(24).fill(0) as number[];
+for (const m of active) {
+  if (m.timestamp_debut) hourData[toNCHour(m.timestamp_debut)]++;
+}
+
+// Province breakdown (active, per commune occurrence)
+const provinceCount: Record<string, number> = { Sud: 0, Nord: 0, 'Îles Loyauté': 0 };
+for (const m of active) {
+  for (const c of m.communes_concernees ?? []) {
+    const p = PROVINCE_MAP[c];
+    if (p) provinceCount[p]++;
+  }
+}
+
+// KPIs
+const affectedCommunes = new Set(active.flatMap(m => m.communes_concernees ?? []));
+const totalPop = [...affectedCommunes].reduce((s, c) => s + (COMMUNE_POPULATION[c] ?? 0), 0);
+const nextMaintenance = active
+  .map(m => m.timestamp_debut)
+  .filter(Boolean)
+  .sort()[0];
+const nextDate = nextMaintenance
+  ? new Date(new Date(nextMaintenance).getTime() + NC_OFFSET * 60000)
+      .toLocaleString('fr-NC', { timeZone: 'UTC', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  : '—';
+
+// Average window duration
+const avgWindow = active.length
+  ? Math.round(active.reduce((s, m) => s + (m.duree_fenetre_minutes ?? 0), 0) / active.length)
+  : 0;
+
+// Duration breakdown (active)
+const durationBuckets: Record<string, number> = {};
+for (const m of active) {
+  const dur = m.duree_coupure_max_minutes ?? m.duree_fenetre_minutes ?? 0;
+  const bucket = dur <= 30 ? '≤ 30 min' : dur <= 60 ? '31–60 min' : dur <= 120 ? '1–2 h' : '> 2 h';
+  durationBuckets[bucket] = (durationBuckets[bucket] ?? 0) + 1;
+}
+
+// Pass serialisable data to client
+const CHART_DATA = {
+  topCommunes: { labels: topCommunes.map(([c]) => c), values: topCommunes.map(([, n]) => n) },
+  impact: {
+    labels: Object.keys(impactCount).map(k => IMPACT_LABEL[k] ?? k),
+    values: Object.values(impactCount),
+  },
+  timeline: { labels: timelineDates, values: timelineCounts },
+  hours: { labels: Array.from({length:24}, (_, i) => `${String(i).padStart(2,'0')}h`), values: hourData },
+  province: { labels: Object.keys(provinceCount), values: Object.values(provinceCount) },
+};
+const KPIS = {
+  total: active.length,
+  archived: archived.length,
+  communes: affectedCommunes.size,
+  population: totalPop,
+  nextDate,
+  avgWindow,
+};
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href={`${BASE}/favicon.svg`} />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analytics — Helia NC</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      body { margin: 0; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; min-height: 100dvh; }
+      .page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 60px; }
+
+      /* Back */
+      .back { display:inline-flex; align-items:center; gap:6px; color:#64748b; font-size:.82rem; text-decoration:none; border:1px solid #2d3148; padding:5px 12px; border-radius:20px; margin-bottom:24px; transition:color .15s,border-color .15s; }
+      .back:hover { color:#e5009f; border-color:#e5009f88; }
+
+      /* Hero */
+      .hero { margin-bottom: 32px; }
+      .hero h1 { font-size:1.6rem; font-weight:800; color:#f8fafc; margin:0 0 6px; display:flex; align-items:center; gap:10px; }
+      .hero h1 i { color:#e5009f; }
+      .hero p { font-size:.85rem; color:#64748b; margin:0; }
+      .data-badge { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:#818cf8; background:#1a1d27; border:1px solid #6366f133; padding:3px 10px; border-radius:20px; text-decoration:none; transition:border-color .15s; margin-top:10px; }
+      .data-badge:hover { border-color:#6366f1; }
+
+      /* KPI grid */
+      .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:24px; }
+      .kpi { background:#13151f; border:1px solid #2d3148; border-radius:12px; padding:16px 18px; }
+      .kpi-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.9rem; margin-bottom:10px; }
+      .kpi-value { font-size:1.7rem; font-weight:800; color:#f8fafc; line-height:1; }
+      .kpi-label { font-size:.72rem; color:#64748b; margin-top:4px; font-weight:500; text-transform:uppercase; letter-spacing:.05em; }
+      .kpi-sub { font-size:.75rem; color:#475569; margin-top:3px; }
+      .kpi.pink  .kpi-icon { background:#2a0820; color:#e5009f; }
+      .kpi.indigo .kpi-icon { background:#1e1b4b; color:#818cf8; }
+      .kpi.cyan  .kpi-icon { background:#0c1929; color:#22d3ee; }
+      .kpi.green .kpi-icon { background:#052e16; color:#4ade80; }
+      .kpi.amber .kpi-icon { background:#1c1100; color:#fbbf24; }
+      .kpi.violet .kpi-icon { background:#1a0a2e; color:#a78bfa; }
+
+      /* Chart cards */
+      .charts-row { display:grid; gap:16px; margin-bottom:16px; }
+      .charts-row.two { grid-template-columns: 1fr 2fr; }
+      @media (max-width:700px) { .charts-row.two { grid-template-columns:1fr; } }
+      .chart-card { background:#13151f; border:1px solid #2d3148; border-radius:12px; padding:20px; }
+      .chart-card.full { margin-bottom:16px; }
+      .chart-title { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:#475569; margin-bottom:16px; display:flex; align-items:center; gap:6px; }
+      .chart-title i { color:#e5009f; }
+      .chart-wrap { position:relative; }
+      .chart-wrap.h-sm { height:220px; }
+      .chart-wrap.h-md { height:300px; }
+      .chart-wrap.h-lg { height:340px; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+
+      <a href={`${BASE}/`} class="back"><i class="fa-solid fa-arrow-left"></i> Retour à la carte</a>
+
+      <div class="hero">
+        <h1><i class="fa-solid fa-chart-column"></i> Tableau de bord</h1>
+        <p>Analyse des interventions réseau Helia Nouvelle-Calédonie</p>
+        <a href="https://github.com/adriens/helia-etat-reseau-data/releases/latest" target="_blank" class="data-badge">
+          <i class="fa-solid fa-database"></i> interventions.parquet · dernière release
+        </a>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi pink">
+          <div class="kpi-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="kpi-value">{KPIS.total}</div>
+          <div class="kpi-label">Interventions actives</div>
+          {KPIS.archived > 0 && <div class="kpi-sub">{KPIS.archived} archivées</div>}
+        </div>
+        <div class="kpi indigo">
+          <div class="kpi-icon"><i class="fa-solid fa-city"></i></div>
+          <div class="kpi-value">{KPIS.communes}</div>
+          <div class="kpi-label">Communes touchées</div>
+          <div class="kpi-sub">sur 33 communes NC</div>
+        </div>
+        <div class="kpi cyan">
+          <div class="kpi-icon"><i class="fa-solid fa-people-group"></i></div>
+          <div class="kpi-value">{(KPIS.population / 1000).toFixed(0)}k</div>
+          <div class="kpi-label">Habitants exposés</div>
+          <div class="kpi-sub">{KPIS.population.toLocaleString('fr-FR')} hab.</div>
+        </div>
+        <div class="kpi green">
+          <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+          <div class="kpi-value" style="font-size:1rem;line-height:1.4">{KPIS.nextDate}</div>
+          <div class="kpi-label">Prochaine maintenance</div>
+        </div>
+        <div class="kpi amber">
+          <div class="kpi-icon"><i class="fa-solid fa-hourglass-half"></i></div>
+          <div class="kpi-value">{KPIS.avgWindow}</div>
+          <div class="kpi-label">Durée fenêtre moy. (min)</div>
+        </div>
+      </div>
+
+      <!-- Impact + Top communes -->
+      <div class="charts-row two">
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-circle-half-stroke"></i> Impact</div>
+          <div class="chart-wrap h-sm"><canvas id="chart-impact"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-ranking-star"></i> Top communes touchées</div>
+          <div class="chart-wrap h-sm"><canvas id="chart-communes"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="chart-card full">
+        <div class="chart-title"><i class="fa-solid fa-calendar-days"></i> Calendrier des maintenances (date de début)</div>
+        <div class="chart-wrap h-md"><canvas id="chart-timeline"></canvas></div>
+      </div>
+
+      <!-- Province + Hours side by side -->
+      <div class="charts-row two">
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-map"></i> Par province</div>
+          <div class="chart-wrap h-md"><canvas id="chart-province"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-regular fa-clock"></i> Heure de début (heure NC)</div>
+          <div class="chart-wrap h-md"><canvas id="chart-hours"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+
+    <script define:vars={{ CHART_DATA, BASE }}>
+      Chart.defaults.color = '#64748b';
+      Chart.defaults.borderColor = '#2d3148';
+      Chart.defaults.font.family = 'system-ui, -apple-system, sans-serif';
+
+      const PINK    = '#e5009f';
+      const INDIGO  = '#6366f1';
+      const CYAN    = '#22d3ee';
+      const GREEN   = '#4ade80';
+      const AMBER   = '#fbbf24';
+      const VIOLET  = '#a78bfa';
+      const IMPACT_COLORS = ['#fca5a5', '#fed7aa', '#fde68a'];
+
+      function gradientBar(ctx, color, alpha = 0.7) {
+        const g = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+        g.addColorStop(0, color + 'cc');
+        g.addColorStop(1, color + '22');
+        return g;
+      }
+
+      // ── Impact donut ─────────────────────────────────────────────────────────
+      new Chart(document.getElementById('chart-impact'), {
+        type: 'doughnut',
+        data: {
+          labels: CHART_DATA.impact.labels,
+          datasets: [{
+            data: CHART_DATA.impact.values,
+            backgroundColor: IMPACT_COLORS,
+            borderColor: '#13151f',
+            borderWidth: 3,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: { position: 'bottom', labels: { padding: 14, boxWidth: 12 } },
+            tooltip: { callbacks: {
+              label: ctx => ` ${ctx.label}: ${ctx.raw} intervention${ctx.raw > 1 ? 's' : ''}`,
+            }},
+          },
+        },
+      });
+
+      // ── Top communes horizontal bar ───────────────────────────────────────────
+      {
+        const ctx = document.getElementById('chart-communes').getContext('2d');
+        const colors = CHART_DATA.topCommunes.labels.map((_, i) => {
+          const t = i / Math.max(CHART_DATA.topCommunes.labels.length - 1, 1);
+          return `hsl(${315 - t * 60}, 85%, ${60 - t * 15}%)`;
+        });
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: CHART_DATA.topCommunes.labels,
+            datasets: [{
+              label: 'Interventions',
+              data: CHART_DATA.topCommunes.values,
+              backgroundColor: colors,
+              borderRadius: 5,
+              borderSkipped: false,
+            }],
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
+              y: {
+                ticks: { font: { size: 11 } },
+                grid: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      // ── Timeline bar ─────────────────────────────────────────────────────────
+      {
+        const ctx = document.getElementById('chart-timeline').getContext('2d');
+        const bg = gradientBar(ctx, PINK);
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: CHART_DATA.timeline.labels,
+            datasets: [{
+              label: 'Interventions',
+              data: CHART_DATA.timeline.values,
+              backgroundColor: bg,
+              borderColor: PINK,
+              borderWidth: 1,
+              borderRadius: 4,
+            }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { maxRotation: 45, font: { size: 10 } }, grid: { color: '#1e2132' } },
+              y: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
+            },
+          },
+        });
+      }
+
+      // ── Province donut ───────────────────────────────────────────────────────
+      new Chart(document.getElementById('chart-province'), {
+        type: 'doughnut',
+        data: {
+          labels: CHART_DATA.province.labels,
+          datasets: [{
+            data: CHART_DATA.province.values,
+            backgroundColor: [PINK, INDIGO, CYAN],
+            borderColor: '#13151f',
+            borderWidth: 3,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '60%',
+          plugins: {
+            legend: { position: 'bottom', labels: { padding: 14, boxWidth: 12 } },
+          },
+        },
+      });
+
+      // ── Hour distribution bar ────────────────────────────────────────────────
+      {
+        const ctx = document.getElementById('chart-hours').getContext('2d');
+        const bg = CHART_DATA.hours.values.map((v, i) =>
+          v === Math.max(...CHART_DATA.hours.values) ? AMBER : INDIGO + '99'
+        );
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: CHART_DATA.hours.labels,
+            datasets: [{
+              label: 'Démarrages',
+              data: CHART_DATA.hours.values,
+              backgroundColor: bg,
+              borderRadius: 3,
+            }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { ticks: { font: { size: 10 } }, grid: { color: '#1e2132' } },
+              y: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
+            },
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
