@@ -1,6 +1,6 @@
 {
   "id": "31dbae60",
-  "scraped_at": "2026-06-02T08:02:40Z",
+  "scraped_at": "2026-06-02T08:27:44Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-01T07:30:00+11:00",
   "timestamp_fin": "2026-06-05T16:00:00+11:00",
@@ -21,6 +21,7 @@
     "PROVINCE_SUD",
     "PROVINCE_NORD"
   ],
+  "scraped_at_local": "2026-06-02T19:27:44+11:00",
   "communes_geopoints": [
     {
       "commune": "NOUMEA",

@@ -1,6 +1,6 @@
 {
   "id": "e25577cf",
-  "scraped_at": "2026-06-02T08:02:40Z",
+  "scraped_at": "2026-06-02T08:27:44Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-11T23:00:00+11:00",
   "timestamp_fin": "2026-06-12T05:00:00+11:00",
@@ -30,6 +30,7 @@
     "PROVINCE_NORD",
     "PROVINCE_SUD"
   ],
+  "scraped_at_local": "2026-06-02T19:27:44+11:00",
   "communes_geopoints": [
     {
       "commune": "POYA",

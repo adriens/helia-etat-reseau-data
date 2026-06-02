@@ -1,6 +1,6 @@
 {
   "id": "33f0342c",
-  "scraped_at": "2026-06-02T08:02:40Z",
+  "scraped_at": "2026-06-02T08:27:44Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-06-10T23:00:00+11:00",
   "timestamp_fin": "2026-06-11T05:00:00+11:00",
@@ -32,6 +32,7 @@
     "PROVINCE_NORD",
     "ILES_LOYAUTE"
   ],
+  "scraped_at_local": "2026-06-02T19:27:44+11:00",
   "communes_geopoints": [
     {
       "commune": "MONT-DORE",
