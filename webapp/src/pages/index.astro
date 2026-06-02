@@ -779,9 +779,14 @@ const COMMUNE_POPULATION: Record<string, number> = {
         const popHtml = pop != null
           ? `<span class="tp-pop"><i class="fa-solid fa-people-group"></i>${pop.toLocaleString('fr-FR')} hab.</span>`
           : '';
+        const totalPop = m.communes_concernees.reduce((s, c) => s + (COMMUNE_POPULATION[c] ?? 0), 0);
+        const totalPopHtml = totalPop > 0
+          ? `<div class="tp-total-pop"><i class="fa-solid fa-users"></i>Population totale concernée : <strong>${totalPop.toLocaleString('fr-FR')} hab.</strong></div>`
+          : '';
         const html = `<div class="tp">
           <div class="tp-commune"><i class="fa-solid fa-location-dot"></i>${gp.commune}${popHtml}</div>
           <div class="tp-svcs">${svcs}</div>
+          ${totalPopHtml}
           <div class="tp-foot">
             <span class="tp-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
             <span class="tp-dates">${fmtShort(m.timestamp_debut)} → ${fmtShort(m.timestamp_fin)}</span>
@@ -921,6 +926,9 @@ const COMMUNE_POPULATION: Record<string, number> = {
   .tp-impact.imp-20 { color: #fed7aa; }
   .tp-impact.imp-ad { color: #fde68a; }
   .tp-dates { font-size: .7rem; color: #94a3b8; }
+  .tp-total-pop { display: flex; align-items: center; gap: 6px; padding: 6px 12px 8px; font-size: .75rem; color: #cbd5e1; border-top: 1px solid #2d3148; }
+  .tp-total-pop i { color: #e5009f; font-size: .72rem; }
+  .tp-total-pop strong { color: #f8fafc; }
   @keyframes dot-ping {
     0%   { box-shadow: 0 0 0  0px rgba(255,255,255,.7); }
     60%  { box-shadow: 0 0 0 18px rgba(255,255,255,.15); }
