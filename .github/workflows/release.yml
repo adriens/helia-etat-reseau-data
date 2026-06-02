@@ -167,7 +167,7 @@ jobs:
           PYEOF
 
       - name: Créer la release GitHub avec assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body: ${{ steps.notes.outputs.body }}
           files: |
