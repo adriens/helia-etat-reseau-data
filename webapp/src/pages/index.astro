@@ -553,7 +553,7 @@ const lastRefresh = lastScrapedAt
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); stopTour(); } });
 
       // ── Three.js arc overlay ──────────────────────────────────────────────
-      let _thr = null, _arcAnimId = null, _prevTourGp = null;
+      let _thr = null, _arcAnimId = null, _pingAnimId = null, _prevTourGp = null;
 
       const ARC_COLORS = {
         COUPURE_30_MIN:    0xef4444,
@@ -600,6 +600,7 @@ const lastRefresh = lastScrapedAt
       function _showCanvas()  { document.getElementById('tour-canvas').style.display = 'block'; }
       function _hideCanvas()  {
         cancelAnimationFrame(_arcAnimId); _arcAnimId = null;
+        cancelAnimationFrame(_pingAnimId); _pingAnimId = null;
         if (_thr) { _thr.scene.clear(); _thr.renderer.clear(); }
         document.getElementById('tour-canvas').style.display = 'none';
         _prevTourGp = null;
@@ -666,6 +667,58 @@ const lastRefresh = lastScrapedAt
         _arcAnimId = requestAnimationFrame(frame);
       }
 
+      function stopPing() {
+        cancelAnimationFrame(_pingAnimId); _pingAnimId = null;
+      }
+
+      function animatePing(gp, impact) {
+        if (!_thr) return;
+        stopPing();
+        _thr.scene.clear();
+
+        const hexColor   = ARC_COLORS[impact] ?? ARC_COLORS.A_DETERMINER;
+        const PING_CYCLE = 1600;  // ms per ring expansion
+        const MAX_RADIUS = 90;
+        const NUM_RINGS  = 3;
+        const N          = 64;
+
+        const rings = Array.from({ length: NUM_RINGS }, (_, i) => {
+          const pts = [];
+          for (let j = 0; j <= N; j++) {
+            const a = (j / N) * Math.PI * 2;
+            pts.push(new THREE.Vector3(Math.cos(a), Math.sin(a), 0));
+          }
+          const ring = new THREE.LineLoop(
+            new THREE.BufferGeometry().setFromPoints(pts),
+            new THREE.LineBasicMaterial({ color: hexColor, transparent: true, opacity: 0 })
+          );
+          _thr.scene.add(ring);
+          return { ring, phase: i / NUM_RINGS };
+        });
+
+        const dot = new THREE.Mesh(
+          new THREE.CircleGeometry(6, 24),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
+        );
+        _thr.scene.add(dot);
+
+        const t0 = performance.now();
+        function frame() {
+          const elapsed = performance.now() - t0;
+          const p = _proj(gp);
+          dot.position.set(p.x, p.y, 0.2);
+          for (const { ring, phase } of rings) {
+            const t = ((elapsed / PING_CYCLE) - phase + 10) % 1;
+            ring.position.set(p.x, p.y, 0.1);
+            ring.scale.set(t * MAX_RADIUS, t * MAX_RADIUS, 1);
+            ring.material.opacity = Math.max(0, (1 - t) * 0.75);
+          }
+          _thr.renderer.render(_thr.scene, _thr.camera);
+          _pingAnimId = requestAnimationFrame(frame);
+        }
+        _pingAnimId = requestAnimationFrame(frame);
+      }
+
       // ── Tour des maintenances ─────────────────────────────────────────────
       let tourTimeout = null, tourRunning = false, tourIndex = 0, tourActivePopup = null;
       const TOUR_DELAY   = 6000;
@@ -715,6 +768,7 @@ const lastRefresh = lastScrapedAt
       function tourStep() {
         if (!tourRunning || !displayed.length) { stopTour(); return; }
         if (tourIndex >= displayed.length) tourIndex = 0;
+        stopPing();
         const m       = displayed[tourIndex];
         const gp      = m.communes_geopoints[0];
         const bearing = TOUR_BEARINGS[tourIndex % TOUR_BEARINGS.length];
@@ -726,7 +780,7 @@ const lastRefresh = lastScrapedAt
 
         if (gp) {
           map.flyTo({ center:[gp.lon, gp.lat], zoom:11, pitch:50, bearing, duration:TOUR_FLY_MS, essential:true });
-          setTimeout(() => showTourPopup(m), TOUR_FLY_MS + 100);
+          setTimeout(() => { showTourPopup(m); if (_thr) animatePing(gp, m.impact); }, TOUR_FLY_MS + 100);
           _prevTourGp = gp;
         }
 
