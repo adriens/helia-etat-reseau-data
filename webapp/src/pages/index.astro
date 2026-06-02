@@ -671,39 +671,71 @@ const COMMUNE_POPULATION: Record<string, number> = {
           _ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
           _ctx.save();
           _ctx.scale(dpr, dpr);
-          _ctx.lineWidth = 2.5; _ctx.lineCap = 'round';
+          _ctx.lineCap = 'round';
 
-          for (let i = 0; i < drawn; i++) {
+          const tip = _bezier(pA, ctrl, pB, t);
+
+          // — QUEUE de comète —
+          // Seuls les TAIL_LEN derniers segments sont visibles, ils s'effacent vers l'arrière
+          const TAIL_LEN = 28;
+          const tailEnd   = drawn;
+          const tailStart = Math.max(0, tailEnd - TAIL_LEN);
+
+          // Pass glow (large, diffus)
+          _ctx.lineWidth = 7;
+          for (let i = tailStart; i < tailEnd; i++) {
+            const f  = (i - tailStart) / TAIL_LEN;          // 0=queue, 1=tête
             const pt1 = _bezier(pA, ctrl, pB, i / N);
             const pt2 = _bezier(pA, ctrl, pB, (i + 1) / N);
-            _ctx.globalAlpha = 0.1 + 0.85 * (i / drawn);
+            _ctx.globalAlpha = 0.06 + 0.22 * f;
+            _ctx.shadowBlur  = 18 + 20 * f;
+            _ctx.shadowColor = color;
+            _ctx.strokeStyle = color;
+            _ctx.beginPath(); _ctx.moveTo(pt1.x, pt1.y); _ctx.lineTo(pt2.x, pt2.y); _ctx.stroke();
+          }
+          _ctx.shadowBlur = 0;
+
+          // Pass core (fin, brillant)
+          _ctx.lineWidth = 2;
+          for (let i = tailStart; i < tailEnd; i++) {
+            const f  = (i - tailStart) / TAIL_LEN;
+            const pt1 = _bezier(pA, ctrl, pB, i / N);
+            const pt2 = _bezier(pA, ctrl, pB, (i + 1) / N);
+            _ctx.globalAlpha = 0.04 + 0.96 * f;
             _ctx.strokeStyle = color;
             _ctx.beginPath(); _ctx.moveTo(pt1.x, pt1.y); _ctx.lineTo(pt2.x, pt2.y); _ctx.stroke();
           }
 
-          const tip = _bezier(pA, ctrl, pB, t);
+          // — NOYAU de comète (tête brillante) —
+          // Halo coloré large
+          _ctx.save();
+          _ctx.shadowBlur = 45; _ctx.shadowColor = color;
+          _ctx.globalAlpha = 0.65; _ctx.fillStyle = color;
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 10, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur = 0; _ctx.restore();
 
-          // Halo (fades as arc progresses)
-          _ctx.globalAlpha = 0.35 * (1 - t * 0.4);
-          _ctx.fillStyle = color;
-          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 11, 0, Math.PI * 2); _ctx.fill();
+          // Cœur blanc éclatant
+          _ctx.save();
+          _ctx.shadowBlur = 20; _ctx.shadowColor = '#ffffff';
+          _ctx.globalAlpha = 1; _ctx.fillStyle = '#ffffff';
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 4, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur = 0; _ctx.restore();
 
-          // Bloom flash: s'embrase à l'arrivée (t > 0.65)
-          if (t > 0.65) {
-            const flash = (t - 0.65) / 0.35;
+          // — BLOOM à l'impact (t > 0.6) —
+          if (t > 0.6) {
+            const flash = (t - 0.6) / 0.4;
             _ctx.save();
-            _ctx.shadowBlur  = 40 * flash;
-            _ctx.shadowColor = color;
-            _ctx.globalAlpha = 0.55 * flash;
-            _ctx.fillStyle   = color;
-            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 20, 0, Math.PI * 2); _ctx.fill();
-            _ctx.shadowBlur  = 0;
-            _ctx.restore();
+            // onde de choc externe
+            _ctx.shadowBlur = 100 * flash; _ctx.shadowColor = color;
+            _ctx.globalAlpha = 0.2 * flash; _ctx.fillStyle = color;
+            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 50 * flash, 0, Math.PI * 2); _ctx.fill();
+            // flash central dense
+            _ctx.shadowBlur = 50 * flash;
+            _ctx.globalAlpha = 0.7 * flash;
+            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 16, 0, Math.PI * 2); _ctx.fill();
+            _ctx.shadowBlur = 0; _ctx.restore();
           }
 
-          // White dot
-          _ctx.globalAlpha = 0.95; _ctx.fillStyle = '#ffffff';
-          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); _ctx.fill();
           _ctx.restore();
 
           if (t < 1) _arcAnimId = requestAnimationFrame(frame);
