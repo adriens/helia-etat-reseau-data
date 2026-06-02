@@ -79,6 +79,8 @@ function fmtPop(n: number) {
       .card-head { padding: 20px 22px 16px; border-bottom: 1px solid #2d3148; display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
       .id-badge { font-family: monospace; font-size: .85rem; font-weight: 700; color: #e5009f; background: #2a0820; border: 1px solid #e5009f66; padding: 3px 10px; border-radius: 6px; letter-spacing: .05em; }
       .impact-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-left: auto; }
+      .ics-btn { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 600; color: #a5b4fc; background: #1a1d27; border: 1px solid #6366f1; padding: 4px 12px; border-radius: 20px; text-decoration: none; transition: background .15s, border-color .15s; }
+      .ics-btn:hover { background: #1e1f3a; border-color: #818cf8; }
       .imp-30 { color: #fca5a5; background: #450a0a; border: 1px solid #fca5a533; }
       .imp-20 { color: #fed7aa; background: #431407; border: 1px solid #fed7aa33; }
       .imp-ad { color: #fde68a; background: #422006; border: 1px solid #fde68a33; }
@@ -139,6 +141,10 @@ function fmtPop(n: number) {
           <span class={`impact-badge ${im.cls}`}>
             <i class={`fa-solid ${im.icon}`}></i>{im.label}
           </span>
+          <a class="ics-btn" href={`/helia-etat-reseau-data/intervention/${m.id}.ics`}
+             title="Ajouter à mon calendrier">
+            <i class="fa-regular fa-calendar-plus"></i> iCal
+          </a>
         </div>
 
         <!-- Dates et durées -->
