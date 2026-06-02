@@ -1,7 +1,32 @@
 ---
 import '../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
 
 const BASE = '/helia-etat-reseau-data';
+
+// Build archive lookup at build time (empty until interventions start archiving)
+const archiveDir = resolve(process.cwd(), '../data/archive');
+const ARCHIVE_MAP: Record<string, { communes: string[]; debut: string; fin: string; impact: string | null }> = {};
+try {
+  const years = await readdir(archiveDir).catch(() => []);
+  for (const year of years) {
+    const files = await readdir(resolve(archiveDir, year)).catch(() => []);
+    for (const f of files.filter(f => f.endsWith('.json'))) {
+      try {
+        const d = JSON.parse(await readFile(resolve(archiveDir, year, f), 'utf-8'));
+        if (d?.id) {
+          ARCHIVE_MAP[d.id] = {
+            communes: d.communes_concernees ?? [],
+            debut:    d.timestamp_debut ?? '',
+            fin:      d.timestamp_fin   ?? '',
+            impact:   d.impact          ?? null,
+          };
+        }
+      } catch { /* skip malformed */ }
+    }
+  }
+} catch { /* archive dir may not exist yet */ }
 ---
 
 <html lang="fr">
@@ -12,42 +37,277 @@ const BASE = '/helia-etat-reseau-data';
     <title>Page introuvable — Helia NC</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
     <style>
-      body { margin:0; min-height:100dvh; background:#0f1117; color:#e2e8f0; font-family:system-ui,-apple-system,sans-serif; display:flex; align-items:center; justify-content:center; }
-      .box { text-align:center; padding:40px 24px; max-width:420px; }
-      .code { font-size:4rem; font-weight:800; color:#e5009f; line-height:1; }
-      h1 { font-size:1.2rem; color:#f8fafc; margin:12px 0 8px; }
-      p { font-size:.85rem; color:#64748b; margin:0 0 24px; }
-      .back { display:inline-flex; align-items:center; gap:6px; color:#a5b4fc; font-size:.85rem; text-decoration:none; border:1px solid #6366f155; padding:8px 18px; border-radius:20px; transition:border-color .15s; }
-      .back:hover { border-color:#6366f1; }
-      #redirect-msg { font-size:.8rem; color:#4ade80; margin-bottom:16px; display:none; }
-    </style>
-    <script define:vars={{ BASE }}>
-      // Redirect /commune/noumea/ → /commune/NOUMEA/ (case-insensitive)
-      const path = window.location.pathname;
-      const communeMatch = path.match(new RegExp(`^${BASE}/commune/([^/]+)(/.*)?$`, 'i'));
-      if (communeMatch) {
-        const raw = communeMatch[1];
-        // Normalize: decode, remove accents (NFD + strip combining chars), uppercase
-        const normalized = decodeURIComponent(raw)
-          .normalize('NFD').replace(/[̀-ͯ]/g, '')
-          .toUpperCase();
-        const rest = communeMatch[2] ?? '/';
-        const target = `${BASE}/commune/${encodeURIComponent(normalized)}${rest}`;
-        if (decodeURIComponent(raw) !== normalized) {
-          window.location.replace(target);
-        }
+      *, *::before, *::after { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100dvh;
+        background: #0f1117; color: #e2e8f0;
+        font-family: system-ui,-apple-system,sans-serif;
+        display: flex; align-items: center; justify-content: center;
       }
-    </script>
+
+      /* ── Generic 404 ───────────────────────────────── */
+      .box { text-align: center; padding: 40px 24px; max-width: 440px; }
+      .code { font-size: 4rem; font-weight: 800; color: #e5009f; line-height: 1; }
+      h1 { font-size: 1.2rem; color: #f8fafc; margin: 12px 0 8px; }
+      .subtitle { font-size: .85rem; color: #64748b; margin: 0 0 24px; }
+
+      /* ── Archived intervention card ────────────────── */
+      .int-card {
+        text-align: left; padding: 0; max-width: 480px; width: 100%;
+        background: #13151f; border: 1px solid #2d3148;
+        border-radius: 16px; overflow: hidden;
+      }
+      .int-card-head {
+        padding: 28px 24px 20px;
+        background: linear-gradient(135deg, #1a0810 0%, #13151f 100%);
+        border-bottom: 1px solid #2d3148;
+        display: flex; flex-direction: column; align-items: center;
+        text-align: center; gap: 10px;
+      }
+      .archive-icon {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: #2a0820; border: 2px solid #e5009f55;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; color: #e5009f;
+        box-shadow: 0 0 28px #e5009f44;
+        margin-bottom: 4px;
+      }
+      .int-card-head h1 {
+        font-size: 1.05rem; font-weight: 700;
+        color: #f8fafc; margin: 0;
+      }
+      .int-card-head .tag-line {
+        font-size: .78rem; color: #64748b; margin: 0;
+      }
+      .id-badge {
+        font-family: monospace; font-size: .82rem; font-weight: 700;
+        color: #e5009f; background: #2a0820;
+        border: 1px solid #e5009f55; padding: 3px 10px;
+        border-radius: 6px; letter-spacing: .05em;
+      }
+      .impact-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: .75rem; font-weight: 700;
+        padding: 4px 12px; border-radius: 20px;
+      }
+      .imp-30 { color: #fca5a5; background: #450a0a; border: 1px solid #fca5a533; }
+      .imp-20 { color: #fed7aa; background: #431407; border: 1px solid #fed7aa33; }
+      .imp-ad { color: #fde68a; background: #422006; border: 1px solid #fde68a33; }
+
+      .int-section { padding: 14px 20px; border-bottom: 1px solid #1e2132; }
+      .int-section:last-of-type { border-bottom: none; }
+      .sec-label {
+        font-size: .6rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .1em; color: #475569;
+        display: flex; align-items: center; gap: 5px; margin-bottom: 8px;
+      }
+      .sec-label i { color: #e5009f; }
+      .date-line {
+        font-size: .83rem; color: #cbd5e1;
+        display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+      }
+      .date-label { font-size: .68rem; color: #475569; min-width: 36px; }
+      .date-line i { color: #64748b; width: 13px; text-align: center; }
+      .commune-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .commune-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: #1e1f2e; border: 1px solid #2d3148;
+        color: #cbd5e1; font-size: .78rem;
+        padding: 4px 10px; border-radius: 20px;
+        text-decoration: none; transition: border-color .15s, color .15s;
+      }
+      .commune-chip:hover { border-color: #e5009f88; color: #fb7cc2; }
+      .commune-chip i { color: #e5009f66; font-size: .65rem; }
+      .more-chip {
+        background: #13151f; border: 1px solid #2d3148;
+        color: #475569; font-size: .75rem;
+        padding: 4px 10px; border-radius: 20px;
+      }
+
+      .int-footer {
+        padding: 16px 20px; background: #0f1117;
+        display: flex; flex-direction: column; gap: 12px;
+        align-items: flex-start;
+      }
+      .notice {
+        display: flex; align-items: flex-start; gap: 10px;
+        font-size: .82rem; color: #94a3b8; line-height: 1.5;
+      }
+      .notice i { color: #64748b; margin-top: 2px; flex-shrink: 0; }
+
+      /* ── Unknown intervention ──────────────────────── */
+      .int-unknown {
+        text-align: center; padding: 40px 24px; max-width: 440px;
+      }
+      .int-unknown .code { color: #e5009f; }
+      .int-id-display {
+        font-family: monospace; font-size: .9rem; color: #e5009f;
+        background: #2a0820; border: 1px solid #e5009f55;
+        padding: 4px 12px; border-radius: 6px; display: inline-block;
+        margin: 8px 0 16px;
+      }
+
+      /* ── Shared nav button ─────────────────────────── */
+      .back {
+        display: inline-flex; align-items: center; gap: 6px;
+        color: #a5b4fc; font-size: .85rem; text-decoration: none;
+        border: 1px solid #6366f155; padding: 8px 18px;
+        border-radius: 20px; transition: border-color .15s;
+      }
+      .back:hover { border-color: #6366f1; }
+
+      #view-generic, #view-archived, #view-unknown { display: none; }
+    </style>
   </head>
   <body>
-    <div class="box">
+
+    <!-- Generic 404 -->
+    <div id="view-generic" class="box">
       <div class="code">404</div>
       <h1>Page introuvable</h1>
-      <p>La page demandée n'existe pas ou a été déplacée.</p>
-      <div id="redirect-msg"><i class="fa-solid fa-rotate-right"></i> Redirection en cours…</div>
+      <p class="subtitle">La page demandée n'existe pas ou a été déplacée.</p>
       <a href="/helia-etat-reseau-data/" class="back">
         <i class="fa-solid fa-arrow-left"></i> Retour à la carte
       </a>
     </div>
+
+    <!-- Archived intervention -->
+    <div id="view-archived" class="int-card">
+      <div class="int-card-head">
+        <div class="archive-icon"><i class="fa-solid fa-box-archive"></i></div>
+        <h1>Intervention terminée</h1>
+        <p class="tag-line">Cette maintenance est archivée — elle n'est plus active.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <span id="arc-id" class="id-badge"></span>
+          <span id="arc-impact" class="impact-badge imp-ad"></span>
+        </div>
+      </div>
+
+      <div class="int-section">
+        <div class="sec-label"><i class="fa-solid fa-calendar-days"></i> Fenêtre de maintenance</div>
+        <div class="date-line">
+          <span class="date-label">Début</span>
+          <i class="fa-regular fa-clock"></i>
+          <span id="arc-debut"></span>
+        </div>
+        <div class="date-line">
+          <span class="date-label">Fin</span>
+          <i class="fa-regular fa-clock"></i>
+          <span id="arc-fin"></span>
+        </div>
+      </div>
+
+      <div class="int-section">
+        <div class="sec-label"><i class="fa-solid fa-map-location-dot"></i> Communes concernées</div>
+        <div id="arc-communes" class="commune-chips"></div>
+      </div>
+
+      <div class="int-footer">
+        <div class="notice">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Cette intervention est archivée. Les données sont conservées à titre historique mais la maintenance est terminée.</span>
+        </div>
+        <a href="/helia-etat-reseau-data/" class="back">
+          <i class="fa-solid fa-arrow-left"></i> Retour à la carte
+        </a>
+      </div>
+    </div>
+
+    <!-- Unknown intervention -->
+    <div id="view-unknown" class="int-unknown">
+      <div class="code">404</div>
+      <h1>Intervention introuvable</h1>
+      <div id="unk-id" class="int-id-display"></div>
+      <p class="subtitle">
+        Cet identifiant ne correspond à aucune intervention connue.<br>
+        Elle a peut-être expiré avant d'être archivée.
+      </p>
+      <a href="/helia-etat-reseau-data/" class="back">
+        <i class="fa-solid fa-arrow-left"></i> Retour à la carte
+      </a>
+    </div>
+
+    <script define:vars={{ BASE, ARCHIVE_MAP }}>
+      const path = window.location.pathname;
+
+      // ── Commune redirect (case/accent insensitive) ──────────────────────────
+      const communeMatch = path.match(new RegExp(`^${BASE}/commune/([^/]+)(/.*)?$`, 'i'));
+      if (communeMatch) {
+        const raw        = communeMatch[1];
+        const normalized = decodeURIComponent(raw)
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .toUpperCase();
+        const rest   = communeMatch[2] ?? '/';
+        const target = `${BASE}/commune/${encodeURIComponent(normalized)}${rest}`;
+        if (decodeURIComponent(raw) !== normalized) {
+          window.location.replace(target);
+          // leave all views hidden while redirecting
+          return;
+        }
+      }
+
+      // ── Intervention 404 ────────────────────────────────────────────────────
+      const intMatch = path.match(new RegExp(`^${BASE}/intervention/([^/]+)/?$`));
+      if (intMatch) {
+        const id   = intMatch[1];
+        const data = ARCHIVE_MAP[id];
+
+        if (data) {
+          // Known archived intervention — fill in details
+          document.getElementById('arc-id').textContent   = `#${id}`;
+          document.getElementById('unk-id').textContent   = `#${id}`;
+
+          // Impact badge
+          const IMPACT_LABEL = {
+            COUPURE_30_MIN:    ['Coupure ~30 min',    'imp-30', 'fa-bolt'],
+            COUPURE_20_30_MIN: ['Coupure 20–30 min',  'imp-20', 'fa-bolt-lightning'],
+          };
+          const [label, cls, icon] = IMPACT_LABEL[data.impact] ?? ['Impact à déterminer', 'imp-ad', 'fa-circle-question'];
+          const impEl = document.getElementById('arc-impact');
+          impEl.className = `impact-badge ${cls}`;
+          impEl.innerHTML = `<i class="fa-solid ${icon}"></i>${label}`;
+
+          // Dates
+          function fmtDate(iso) {
+            if (!iso) return '—';
+            return new Date(iso).toLocaleString('fr-NC', {
+              timeZone: 'Pacific/Noumea',
+              weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            });
+          }
+          document.getElementById('arc-debut').textContent = fmtDate(data.debut);
+          document.getElementById('arc-fin').textContent   = fmtDate(data.fin);
+
+          // Communes
+          const container = document.getElementById('arc-communes');
+          const MAX_SHOWN = 6;
+          const communes  = data.communes ?? [];
+          communes.slice(0, MAX_SHOWN).forEach(c => {
+            const a = document.createElement('a');
+            a.className = 'commune-chip';
+            a.href      = `${BASE}/commune/${encodeURIComponent(c)}/`;
+            a.innerHTML = `<i class="fa-solid fa-location-dot"></i>${c}`;
+            container.appendChild(a);
+          });
+          if (communes.length > MAX_SHOWN) {
+            const span = document.createElement('span');
+            span.className   = 'more-chip';
+            span.textContent = `+${communes.length - MAX_SHOWN} autres`;
+            container.appendChild(span);
+          }
+
+          document.getElementById('view-archived').style.display = 'block';
+        } else {
+          // Completely unknown ID
+          document.getElementById('unk-id').textContent = `#${id}`;
+          document.getElementById('view-unknown').style.display = 'block';
+        }
+        return;
+      }
+
+      // ── Default generic 404 ─────────────────────────────────────────────────
+      document.getElementById('view-generic').style.display = 'block';
+    </script>
   </body>
 </html>
