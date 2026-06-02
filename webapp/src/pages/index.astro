@@ -553,43 +553,27 @@ const lastRefresh = lastScrapedAt
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); stopTour(); } });
 
       // ── Three.js arc overlay ──────────────────────────────────────────────
-      let _thr = null, _arcAnimId = null, _pingAnimId = null, _prevTourGp = null;
+      let _ctx = null, _arcAnimId = null, _pingAnimId = null, _prevTourGp = null;
 
-      const ARC_COLORS = {
-        COUPURE_30_MIN:    0xef4444,
-        COUPURE_20_30_MIN: 0xf97316,
-        A_DETERMINER:      0x38bdf8,
+      const ARC_COLORS_CSS = {
+        COUPURE_30_MIN:    '#ef4444',
+        COUPURE_20_30_MIN: '#f97316',
+        A_DETERMINER:      '#38bdf8',
       };
 
       function _initOverlay() {
-        if (_thr) return;
         const cvs   = document.getElementById('tour-canvas');
         const mapEl = document.getElementById('map');
+        const dpr   = devicePixelRatio || 1;
         const w = mapEl.clientWidth, h = mapEl.clientHeight;
-        cvs.width  = w * devicePixelRatio;
-        cvs.height = h * devicePixelRatio;
+        cvs.width  = w * dpr; cvs.height = h * dpr;
         cvs.style.width = w + 'px'; cvs.style.height = h + 'px';
-        const renderer = new THREE.WebGLRenderer({ canvas: cvs, alpha: true, antialias: true });
-        renderer.setPixelRatio(devicePixelRatio);
-        renderer.setSize(w, h);
-        const scene    = new THREE.Scene();
-        // Orthographic pixel-space camera: (0,0)=bottom-left, y increases upward
-        const camera   = new THREE.OrthographicCamera(0, w, h, 0, -1, 1);
-        _thr = { renderer, scene, camera, w, h };
+        _ctx = cvs.getContext('2d');
         window.addEventListener('resize', () => {
-          if (!_thr) return;
           const ww = mapEl.clientWidth, hh = mapEl.clientHeight;
-          _thr.renderer.setSize(ww, hh);
-          Object.assign(_thr.camera, { right: ww, top: hh });
-          _thr.camera.updateProjectionMatrix();
-          Object.assign(_thr, { w: ww, h: hh });
+          cvs.width  = ww * dpr; cvs.height = hh * dpr;
+          cvs.style.width = ww + 'px'; cvs.style.height = hh + 'px';
         });
-      }
-
-      // map.project() gives (x, y) with y=0 at top → flip for Three.js
-      function _proj(gp) {
-        const p = map.project([gp.lon, gp.lat]);
-        return { x: p.x, y: _thr.h - p.y };
       }
 
       function _bezier(a, ctrl, b, t) {
@@ -597,71 +581,52 @@ const lastRefresh = lastScrapedAt
         return { x: u*u*a.x + 2*u*t*ctrl.x + t*t*b.x, y: u*u*a.y + 2*u*t*ctrl.y + t*t*b.y };
       }
 
-      function _showCanvas()  { document.getElementById('tour-canvas').style.display = 'block'; }
-      function _hideCanvas()  {
+      function _showCanvas() { document.getElementById('tour-canvas').style.display = 'block'; }
+      function _hideCanvas() {
         cancelAnimationFrame(_arcAnimId); _arcAnimId = null;
         cancelAnimationFrame(_pingAnimId); _pingAnimId = null;
-        if (_thr) { _thr.scene.clear(); _thr.renderer.clear(); }
+        if (_ctx) _ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
         document.getElementById('tour-canvas').style.display = 'none';
         _prevTourGp = null;
       }
 
       function animateTourArc(fromGp, toGp, impact) {
-        if (!_thr) return;
+        if (!_ctx) return;
         cancelAnimationFrame(_arcAnimId);
-        _thr.scene.clear();
-
-        const hexColor = ARC_COLORS[impact] ?? ARC_COLORS.A_DETERMINER;
-        const color    = new THREE.Color(hexColor);
-        const N        = 80;
-        const t0       = performance.now();
-
-        // Line geometry with N+1 vertices
-        const pos  = new Float32Array((N + 1) * 3);
-        const col  = new Float32Array((N + 1) * 3);
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-        geom.setAttribute('color',    new THREE.BufferAttribute(col, 3));
-        geom.setDrawRange(0, 0);
-        const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: .9 }));
-        _thr.scene.add(line);
-
-        // Head: white dot + colored halo
-        const head = new THREE.Mesh(
-          new THREE.CircleGeometry(5, 20),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95 })
-        );
-        const halo = new THREE.Mesh(
-          new THREE.CircleGeometry(11, 20),
-          new THREE.MeshBasicMaterial({ color: hexColor, transparent: true, opacity: .35 })
-        );
-        _thr.scene.add(halo);
-        _thr.scene.add(head);
+        const color = ARC_COLORS_CSS[impact] ?? ARC_COLORS_CSS.A_DETERMINER;
+        const N = 80, t0 = performance.now();
 
         function frame() {
-          const t = Math.min((performance.now() - t0) / TOUR_FLY_MS, 1);
-          const pA = _proj(fromGp), pB = _proj(toGp);
+          const dpr = devicePixelRatio || 1;
+          const t   = Math.min((performance.now() - t0) / TOUR_FLY_MS, 1);
+          const pA  = map.project([fromGp.lon, fromGp.lat]);
+          const pB  = map.project([toGp.lon,   toGp.lat]);
+          // ctrl above midpoint: subtract lift (Canvas 2D y increases downward)
           const lift = Math.min(Math.hypot(pB.x - pA.x, pB.y - pA.y) * 0.45, 220);
-          const ctrl = { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 + lift };
+          const ctrl = { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 - lift };
           const drawn = Math.max(1, Math.floor(t * N));
 
-          for (let i = 0; i <= drawn; i++) {
-            const pt  = _bezier(pA, ctrl, pB, i / N);
-            const idx = i * 3;
-            pos[idx] = pt.x; pos[idx+1] = pt.y; pos[idx+2] = 0;
-            const br = .1 + .9 * (i / drawn);
-            col[idx] = color.r * br; col[idx+1] = color.g * br; col[idx+2] = color.b * br;
+          _ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
+          _ctx.save();
+          _ctx.scale(dpr, dpr);
+          _ctx.lineWidth = 2.5; _ctx.lineCap = 'round';
+
+          for (let i = 0; i < drawn; i++) {
+            const pt1 = _bezier(pA, ctrl, pB, i / N);
+            const pt2 = _bezier(pA, ctrl, pB, (i + 1) / N);
+            _ctx.globalAlpha = 0.1 + 0.85 * (i / drawn);
+            _ctx.strokeStyle = color;
+            _ctx.beginPath(); _ctx.moveTo(pt1.x, pt1.y); _ctx.lineTo(pt2.x, pt2.y); _ctx.stroke();
           }
-          geom.setDrawRange(0, drawn + 1);
-          geom.attributes.position.needsUpdate = true;
-          geom.attributes.color.needsUpdate    = true;
 
           const tip = _bezier(pA, ctrl, pB, t);
-          head.position.set(tip.x, tip.y, .1);
-          halo.position.set(tip.x, tip.y, .05);
-          halo.material.opacity = .35 * (1 - t * .4);
+          _ctx.globalAlpha = 0.35 * (1 - t * 0.4);
+          _ctx.fillStyle = color;
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 11, 0, Math.PI * 2); _ctx.fill();
+          _ctx.globalAlpha = 0.95; _ctx.fillStyle = '#ffffff';
+          _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); _ctx.fill();
+          _ctx.restore();
 
-          _thr.renderer.render(_thr.scene, _thr.camera);
           if (t < 1) _arcAnimId = requestAnimationFrame(frame);
         }
         _arcAnimId = requestAnimationFrame(frame);
@@ -672,48 +637,31 @@ const lastRefresh = lastScrapedAt
       }
 
       function animatePing(gp, impact) {
-        if (!_thr) return;
+        if (!_ctx) return;
         stopPing();
-        _thr.scene.clear();
+        const color      = ARC_COLORS_CSS[impact] ?? ARC_COLORS_CSS.A_DETERMINER;
+        const PING_CYCLE = 1600, MAX_RADIUS = 90, NUM_RINGS = 3;
+        const t0         = performance.now();
 
-        const hexColor   = ARC_COLORS[impact] ?? ARC_COLORS.A_DETERMINER;
-        const PING_CYCLE = 1600;  // ms per ring expansion
-        const MAX_RADIUS = 90;
-        const NUM_RINGS  = 3;
-        const N          = 64;
-
-        const rings = Array.from({ length: NUM_RINGS }, (_, i) => {
-          const pts = [];
-          for (let j = 0; j <= N; j++) {
-            const a = (j / N) * Math.PI * 2;
-            pts.push(new THREE.Vector3(Math.cos(a), Math.sin(a), 0));
-          }
-          const ring = new THREE.LineLoop(
-            new THREE.BufferGeometry().setFromPoints(pts),
-            new THREE.LineBasicMaterial({ color: hexColor, transparent: true, opacity: 0 })
-          );
-          _thr.scene.add(ring);
-          return { ring, phase: i / NUM_RINGS };
-        });
-
-        const dot = new THREE.Mesh(
-          new THREE.CircleGeometry(6, 24),
-          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 })
-        );
-        _thr.scene.add(dot);
-
-        const t0 = performance.now();
         function frame() {
+          const dpr     = devicePixelRatio || 1;
           const elapsed = performance.now() - t0;
-          const p = _proj(gp);
-          dot.position.set(p.x, p.y, 0.2);
-          for (const { ring, phase } of rings) {
-            const t = ((elapsed / PING_CYCLE) - phase + 10) % 1;
-            ring.position.set(p.x, p.y, 0.1);
-            ring.scale.set(t * MAX_RADIUS, t * MAX_RADIUS, 1);
-            ring.material.opacity = Math.max(0, (1 - t) * 0.75);
+          const p       = map.project([gp.lon, gp.lat]);
+
+          _ctx.clearRect(0, 0, _ctx.canvas.width, _ctx.canvas.height);
+          _ctx.save();
+          _ctx.scale(dpr, dpr);
+
+          for (let i = 0; i < NUM_RINGS; i++) {
+            const t      = ((elapsed / PING_CYCLE) - i / NUM_RINGS + 10) % 1;
+            _ctx.globalAlpha = Math.max(0, (1 - t) * 0.75);
+            _ctx.strokeStyle = color; _ctx.lineWidth = 2;
+            _ctx.beginPath(); _ctx.arc(p.x, p.y, t * MAX_RADIUS, 0, Math.PI * 2); _ctx.stroke();
           }
-          _thr.renderer.render(_thr.scene, _thr.camera);
+          _ctx.globalAlpha = 0.9; _ctx.fillStyle = '#ffffff';
+          _ctx.beginPath(); _ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); _ctx.fill();
+          _ctx.restore();
+
           _pingAnimId = requestAnimationFrame(frame);
         }
         _pingAnimId = requestAnimationFrame(frame);
@@ -793,10 +741,10 @@ const lastRefresh = lastScrapedAt
         if (!displayed.length) return;
         tourIndex   = 0;
         tourRunning = true;
-        _prevTourGp = null;
-        if (typeof THREE !== 'undefined') {
-          try { _initOverlay(); _showCanvas(); } catch(e) { console.warn('Tour overlay init failed:', e); }
-        }
+        // Arc starts from current map center so step 1 already shows an arc
+        const c = map.getCenter();
+        _prevTourGp = { lon: c.lng, lat: c.lat };
+        try { _initOverlay(); _showCanvas(); } catch(e) { console.warn('Tour overlay init failed:', e); }
         tourStep();
       }
 
