@@ -12,6 +12,9 @@ dimensions:
   - name: impact
     label: Impact
     column: impact
+  - name: periode_jour_nuit
+    label: Période (Jour/Nuit)
+    column: periode_jour_nuit
   - name: province
     label: Province
     column: provinces_concernees # Note: This might be an array, Rill handles it if configured
