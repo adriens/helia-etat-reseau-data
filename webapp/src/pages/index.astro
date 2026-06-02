@@ -77,12 +77,26 @@ const builtAt = new Date().toLocaleString('fr-NC', {
       #map { flex: 1; position: relative; touch-action: none; }
       #detail { position: absolute; bottom: 24px; right: 16px; width: 320px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; z-index: 10; display: none; max-height: 60vh; overflow-y: auto; }
       #detail.visible { display: block; }
-      #detail .close-btn { float: right; background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.1rem; line-height: 1; }
-      #detail h2 { font-size: .85rem; font-weight: 600; margin-bottom: 8px; color: #a78bfa; }
-      .detail-row { display: flex; justify-content: space-between; font-size: .75rem; padding: 4px 0; border-bottom: 1px solid #1e2235; gap: 8px; }
-      .detail-row:last-child { border-bottom: none; }
-      .detail-label { color: #64748b; flex-shrink: 0; }
-      .detail-value { color: #e2e8f0; text-align: right; }
+      #detail .close-btn { float: right; background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }
+      #detail h2 { font-size: .82rem; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .detail-id { color: #4c3f8a; font-family: monospace; font-size: .75rem; }
+      .detail-impact-badge { display:inline-flex; align-items:center; gap:4px; font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:20px; text-transform:uppercase; }
+      .detail-impact-badge.imp-20 { background:#431407; border:1px solid #c2410c; color:#fed7aa; }
+      .detail-impact-badge.imp-30 { background:#450a0a; border:1px solid #b91c1c; color:#fecaca; }
+      .detail-impact-badge.imp-ad { background:#422006; border:1px solid #d97706; color:#fde68a; }
+      .detail-section { margin-bottom: 12px; }
+      .detail-section-title { font-size:.65rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:#4c3f8a; margin-bottom:6px; display:flex; align-items:center; gap:5px; }
+      .detail-row { display:flex; justify-content:space-between; align-items:center; font-size:.75rem; padding:4px 0; border-bottom:1px solid #1e2235; gap:8px; }
+      .detail-row:last-child { border-bottom:none; }
+      .detail-label { color:#64748b; flex-shrink:0; display:flex; align-items:center; gap:5px; }
+      .detail-label i { color:#4c3f8a; width:12px; text-align:center; }
+      .detail-value { color:#e2e8f0; text-align:right; font-variant-numeric:tabular-nums; }
+      .detail-pills { display:flex; flex-wrap:wrap; gap:4px; }
+      .detail-pill { font-size:.63rem; padding:2px 7px; border-radius:5px; background:#1e2235; border:1px solid #2d3756; color:#94a3b8; }
+      .detail-pill.pill-nc { background:#1a1535; border-color:#4c3f8a; color:#a78bfa; }
+      .detail-pill.pill-svc { background:#13151f; border-color:#2d3756; color:#7c6aad; }
+      .detail-pill.pill-province { background:#13151f; border-color:#2d3148; color:#64748b; }
+      .detail-footer { font-size:.6rem; color:#374151; text-align:right; margin-top:8px; padding-top:8px; border-top:1px solid #1e2235; font-style:italic; }
       @media (max-width: 700px) {
         aside { width: 100%; height: 45vh; border-right: none; border-bottom: 1px solid #2d3148; }
         .layout { flex-direction: column; }
@@ -358,6 +372,71 @@ const builtAt = new Date().toLocaleString('fr-NC', {
       }
 
       // ── Sélection maintenance ────────────────────────────────────────────
+      const PROVINCE_LABEL = {
+        PROVINCE_SUD:  "Province Sud",
+        PROVINCE_NORD: "Province Nord",
+        ILES_LOYAUTE:  "Îles Loyauté",
+      };
+
+      function fmtCoupure(m) {
+        if (m.duree_coupure_min_minutes == null) return "À déterminer";
+        if (m.duree_coupure_min_minutes === m.duree_coupure_max_minutes)
+          return `${m.duree_coupure_min_minutes} min`;
+        return `${m.duree_coupure_min_minutes}–${m.duree_coupure_max_minutes} min`;
+      }
+
+      function renderDetail(m) {
+        const im        = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
+        const communes  = m.communes_concernees;
+        const provinces = m.provinces_concernees.map(p => PROVINCE_LABEL[p] ?? p);
+        const services  = m.services.map(s => SVC[s]?.label ?? s.replace(/_/g," "));
+
+        const communesPills = m.est_toute_nc
+          ? `<span class="detail-pill pill-nc"><i class="fa-solid fa-earth-oceania"></i> Toute la Nouvelle-Calédonie</span>`
+          : communes.map(c => `<span class="detail-pill">${c}</span>`).join("");
+
+        detailTitle.innerHTML = `
+          <span class="detail-id">#${m.id}</span>
+          <span class="detail-impact-badge ${im.cls}">
+            <i class="fa-solid ${im.icon}"></i> ${im.label}
+          </span>`;
+
+        detailBody.innerHTML = `
+          <div class="detail-section">
+            <div class="detail-row">
+              <span class="detail-label"><i class="fa-regular fa-calendar-days"></i> Début</span>
+              <span class="detail-value">${fmtDate(m.timestamp_debut)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class="fa-regular fa-calendar-check"></i> Fin</span>
+              <span class="detail-value">${fmtDate(m.timestamp_fin)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class="fa-regular fa-clock"></i> Fenêtre</span>
+              <span class="detail-value">${fmtDuration(m.duree_fenetre_minutes)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label"><i class="fa-solid fa-bolt"></i> Coupure</span>
+              <span class="detail-value">${fmtCoupure(m)}</span>
+            </div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fa-solid fa-location-dot"></i> Communes (${communes.length})</div>
+            <div class="detail-pills">${communesPills}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fa-solid fa-network-wired"></i> Services</div>
+            <div class="detail-pills">${services.map(s => `<span class="detail-pill pill-svc">${s}</span>`).join("")}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fa-solid fa-map"></i> Provinces</div>
+            <div class="detail-pills">${provinces.map(p => `<span class="detail-pill pill-province">${p}</span>`).join("")}</div>
+          </div>
+          <div class="detail-footer">
+            Scrape · ${fmtDate(m.scraped_at_local)}
+          </div>`;
+      }
+
       function selectMaintenance(id, focusCommune = null) {
         listEl.querySelectorAll(".mi").forEach(el => el.classList.toggle("active", el.dataset.id === id));
         const activeEl = listEl.querySelector(`.mi[data-id="${id}"]`);
@@ -371,17 +450,7 @@ const builtAt = new Date().toLocaleString('fr-NC', {
         });
         const m = displayed.find(x => x.id === id);
         if (!m) return;
-        detailTitle.textContent = `Maintenance #${m.id}`;
-        detailBody.innerHTML = [
-          ["Début (NC)",  fmtDate(m.timestamp_debut)],
-          ["Fin (NC)",    fmtDate(m.timestamp_fin)],
-          ["Fenêtre",     `${m.duree_fenetre_minutes} min`],
-          ["Coupure",     m.duree_coupure_min_minutes != null ? `${m.duree_coupure_min_minutes}–${m.duree_coupure_max_minutes} min` : "À déterminer"],
-          ["Communes",    m.communes_concernees.join(", ")],
-          ["Services",    m.services.map(s => s.replace(/_/g," ")).join(", ")],
-          ["Provinces",   m.provinces_concernees.join(", ")],
-          ["Scrape (NC)", m.scraped_at_local],
-        ].map(([l,v]) => `<div class="detail-row"><span class="detail-label">${l}</span><span class="detail-value">${v}</span></div>`).join("");
+        renderDetail(m);
         detailEl.classList.add("visible");
         if (focusCommune) {
           const gp = m.communes_geopoints.find(g => g.commune === focusCommune);
