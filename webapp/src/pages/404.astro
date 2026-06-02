@@ -27,10 +27,13 @@ const BASE = '/helia-etat-reseau-data';
       const communeMatch = path.match(new RegExp(`^${BASE}/commune/([^/]+)(/.*)?$`, 'i'));
       if (communeMatch) {
         const raw = communeMatch[1];
-        const upper = decodeURIComponent(raw).toUpperCase();
+        // Normalize: decode, remove accents (NFD + strip combining chars), uppercase
+        const normalized = decodeURIComponent(raw)
+          .normalize('NFD').replace(/[̀-ͯ]/g, '')
+          .toUpperCase();
         const rest = communeMatch[2] ?? '/';
-        const target = `${BASE}/commune/${encodeURIComponent(upper)}${rest}`;
-        if (decodeURIComponent(raw) !== upper) {
+        const target = `${BASE}/commune/${encodeURIComponent(normalized)}${rest}`;
+        if (decodeURIComponent(raw) !== normalized) {
           window.location.replace(target);
         }
       }
