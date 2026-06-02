@@ -71,6 +71,8 @@ const lastRefresh = lastScrapedAt
       .mi:hover   { background: #1e2235; border-color: #3d4263; }
       .mi.active  { background: #1a1535; border-color: #6d28d9; }
       .mi.active::before { background: #7c3aed; }
+      .mi.tour-active { border-color: #e5009f !important; box-shadow: 0 0 0 1px #e5009f44, 0 0 16px #e5009f28; }
+      .mi.tour-active::before { background: #e5009f !important; }
       .mi.imp-20  { --accent: #f97316; }
       .mi.imp-30  { --accent: #ef4444; }
       .mi.imp-ad  { --accent: #eab308; }
@@ -531,8 +533,12 @@ const lastRefresh = lastScrapedAt
 
       function selectMaintenance(id, focusCommune = null, fromTour = false) {
         if (!fromTour) stopTour();
-        listEl.querySelectorAll(".mi").forEach(el => el.classList.toggle("active", el.dataset.id === id));
+        listEl.querySelectorAll(".mi").forEach(el => {
+          el.classList.toggle("active", el.dataset.id === id);
+          el.classList.remove("tour-active");
+        });
         const activeEl = listEl.querySelector(`.mi[data-id="${id}"]`);
+        if (fromTour && activeEl) activeEl.classList.add("tour-active");
         if (activeEl) activeEl.scrollIntoView({ behavior:"smooth", block:"nearest" });
         markers.forEach(({ dot, ids, commune }) => {
           const selected = focusCommune ? commune === focusCommune : ids.has(id);
@@ -792,6 +798,7 @@ const lastRefresh = lastScrapedAt
         tourRunning = false;
         hideTourPopup();
         _hideCanvas();
+        listEl.querySelectorAll(".mi.tour-active").forEach(el => el.classList.remove("tour-active"));
         map.easeTo({ pitch:0, bearing:0, duration:800 });
         updateTourBtn();
       }
