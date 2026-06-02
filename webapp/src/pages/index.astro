@@ -44,6 +44,7 @@ const lastRefresh = lastScrapedAt
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
     <script is:inline src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script is:inline src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
     <style>
       body { margin: 0; height: 100dvh; display: flex; flex-direction: column; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; touch-action: none; }
       .layout { display: flex; flex: 1; overflow: hidden; touch-action: none; }
@@ -233,6 +234,7 @@ const lastRefresh = lastScrapedAt
       </aside>
 
       <div id="map">
+        <canvas id="tour-canvas" style="position:absolute;inset:0;pointer-events:none;display:none;z-index:4;"></canvas>
         <button id="btn-fit" title="Cadrer sur les résultats"><i class="fa-solid fa-expand"></i></button>
         <button id="btn-sidebar" title="Masquer/afficher le menu"><i class="fa-solid fa-chevron-left" id="sidebar-chevron"></i></button>
         <div id="detail-backdrop"></div>
@@ -550,6 +552,120 @@ const lastRefresh = lastScrapedAt
       backdropEl.addEventListener("click", closeDetail);
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); stopTour(); } });
 
+      // ── Three.js arc overlay ──────────────────────────────────────────────
+      let _thr = null, _arcAnimId = null, _prevTourGp = null;
+
+      const ARC_COLORS = {
+        COUPURE_30_MIN:    0xef4444,
+        COUPURE_20_30_MIN: 0xf97316,
+        A_DETERMINER:      0x38bdf8,
+      };
+
+      function _initOverlay() {
+        if (_thr) return;
+        const cvs   = document.getElementById('tour-canvas');
+        const mapEl = document.getElementById('map');
+        const w = mapEl.clientWidth, h = mapEl.clientHeight;
+        cvs.width  = w * devicePixelRatio;
+        cvs.height = h * devicePixelRatio;
+        cvs.style.width = w + 'px'; cvs.style.height = h + 'px';
+        const renderer = new THREE.WebGLRenderer({ canvas: cvs, alpha: true, antialias: true });
+        renderer.setPixelRatio(devicePixelRatio);
+        renderer.setSize(w, h);
+        const scene    = new THREE.Scene();
+        // Orthographic pixel-space camera: (0,0)=bottom-left, y increases upward
+        const camera   = new THREE.OrthographicCamera(0, w, h, 0, -1, 1);
+        _thr = { renderer, scene, camera, w, h };
+        window.addEventListener('resize', () => {
+          if (!_thr) return;
+          const ww = mapEl.clientWidth, hh = mapEl.clientHeight;
+          _thr.renderer.setSize(ww, hh);
+          Object.assign(_thr.camera, { right: ww, top: hh });
+          _thr.camera.updateProjectionMatrix();
+          Object.assign(_thr, { w: ww, h: hh });
+        });
+      }
+
+      // map.project() gives (x, y) with y=0 at top → flip for Three.js
+      function _proj(gp) {
+        const p = map.project([gp.lon, gp.lat]);
+        return { x: p.x, y: _thr.h - p.y };
+      }
+
+      function _bezier(a, ctrl, b, t) {
+        const u = 1 - t;
+        return { x: u*u*a.x + 2*u*t*ctrl.x + t*t*b.x, y: u*u*a.y + 2*u*t*ctrl.y + t*t*b.y };
+      }
+
+      function _showCanvas()  { document.getElementById('tour-canvas').style.display = 'block'; }
+      function _hideCanvas()  {
+        cancelAnimationFrame(_arcAnimId); _arcAnimId = null;
+        if (_thr) { _thr.scene.clear(); _thr.renderer.clear(); }
+        document.getElementById('tour-canvas').style.display = 'none';
+        _prevTourGp = null;
+      }
+
+      function animateTourArc(fromGp, toGp, impact) {
+        if (!_thr) return;
+        cancelAnimationFrame(_arcAnimId);
+        _thr.scene.clear();
+
+        const hexColor = ARC_COLORS[impact] ?? ARC_COLORS.A_DETERMINER;
+        const color    = new THREE.Color(hexColor);
+        const N        = 80;
+        const t0       = performance.now();
+
+        // Line geometry with N+1 vertices
+        const pos  = new Float32Array((N + 1) * 3);
+        const col  = new Float32Array((N + 1) * 3);
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geom.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+        geom.setDrawRange(0, 0);
+        const line = new THREE.Line(geom, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: .9 }));
+        _thr.scene.add(line);
+
+        // Head: white dot + colored halo
+        const head = new THREE.Mesh(
+          new THREE.CircleGeometry(5, 20),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95 })
+        );
+        const halo = new THREE.Mesh(
+          new THREE.CircleGeometry(11, 20),
+          new THREE.MeshBasicMaterial({ color: hexColor, transparent: true, opacity: .35 })
+        );
+        _thr.scene.add(halo);
+        _thr.scene.add(head);
+
+        function frame() {
+          const t = Math.min((performance.now() - t0) / TOUR_FLY_MS, 1);
+          const pA = _proj(fromGp), pB = _proj(toGp);
+          const lift = Math.min(Math.hypot(pB.x - pA.x, pB.y - pA.y) * 0.45, 220);
+          const ctrl = { x: (pA.x + pB.x) / 2, y: (pA.y + pB.y) / 2 + lift };
+          const drawn = Math.max(1, Math.floor(t * N));
+
+          for (let i = 0; i <= drawn; i++) {
+            const pt  = _bezier(pA, ctrl, pB, i / N);
+            const idx = i * 3;
+            pos[idx] = pt.x; pos[idx+1] = pt.y; pos[idx+2] = 0;
+            const br = .1 + .9 * (i / drawn);
+            col[idx] = color.r * br; col[idx+1] = color.g * br; col[idx+2] = color.b * br;
+          }
+          geom.setDrawRange(0, drawn + 1);
+          geom.attributes.position.needsUpdate = true;
+          geom.attributes.color.needsUpdate    = true;
+
+          const tip = _bezier(pA, ctrl, pB, t);
+          head.position.set(tip.x, tip.y, .1);
+          halo.position.set(tip.x, tip.y, .05);
+          halo.material.opacity = .35 * (1 - t * .4);
+
+          _thr.renderer.render(_thr.scene, _thr.camera);
+          if (t < 1) _arcAnimId = requestAnimationFrame(frame);
+        }
+        _arcAnimId = requestAnimationFrame(frame);
+      }
+
       // ── Tour des maintenances ─────────────────────────────────────────────
       let tourTimeout = null, tourRunning = false, tourIndex = 0, tourActivePopup = null;
       const TOUR_DELAY   = 6000;
@@ -598,9 +714,11 @@ const lastRefresh = lastScrapedAt
 
       function tourStep() {
         if (!tourRunning || !displayed.length || tourIndex >= displayed.length) { stopTour(); return; }
-        const m   = displayed[tourIndex];
-        const gp  = m.communes_geopoints[0];
+        const m       = displayed[tourIndex];
+        const gp      = m.communes_geopoints[0];
         const bearing = TOUR_BEARINGS[tourIndex % TOUR_BEARINGS.length];
+
+        if (gp && _prevTourGp) animateTourArc(_prevTourGp, gp, m.impact);
 
         selectMaintenance(m.id, null, true);
         startTourProgressBar(m.id);
@@ -608,6 +726,7 @@ const lastRefresh = lastScrapedAt
         if (gp) {
           map.flyTo({ center:[gp.lon, gp.lat], zoom:11, pitch:50, bearing, duration:TOUR_FLY_MS, essential:true });
           setTimeout(() => showTourPopup(m), TOUR_FLY_MS + 100);
+          _prevTourGp = gp;
         }
 
         tourIndex++;
@@ -617,17 +736,21 @@ const lastRefresh = lastScrapedAt
 
       function startTour() {
         if (!displayed.length) return;
-        tourIndex  = 0;
+        tourIndex   = 0;
         tourRunning = true;
+        _prevTourGp = null;
+        _initOverlay();
+        _showCanvas();
         tourStep();
       }
 
       function stopTour() {
         if (!tourRunning) return;
         clearTimeout(tourTimeout);
-        tourTimeout  = null;
-        tourRunning  = false;
+        tourTimeout = null;
+        tourRunning = false;
         hideTourPopup();
+        _hideCanvas();
         map.easeTo({ pitch:0, bearing:0, duration:800 });
         updateTourBtn();
       }
