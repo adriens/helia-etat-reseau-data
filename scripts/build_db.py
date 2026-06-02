@@ -29,9 +29,34 @@ def build_db(data_dir: Path, db_path: Path):
     # We use a list of paths for read_json_auto
     paths = [str(f) for f in json_files]
     
-    # Create the main table
+    # Create the main table with schema and check constraint
+    con.execute("""
+        CREATE TABLE maintenances (
+            id VARCHAR,
+            scraped_at TIMESTAMP,
+            source_url VARCHAR,
+            timestamp_debut TIMESTAMP,
+            timestamp_fin TIMESTAMP,
+            duree_fenetre_minutes INTEGER,
+            duree_coupure_min_minutes INTEGER,
+            duree_coupure_max_minutes INTEGER,
+            impact VARCHAR,
+            nb_communes_concernees INTEGER,
+            est_toute_nc BOOLEAN,
+            scraped_at_local TIMESTAMP,
+            centroide_lat DOUBLE,
+            centroide_lon DOUBLE,
+            geom GEOMETRY,
+            est_active BOOLEAN,
+            statut VARCHAR CHECK (statut IN ('ACTIVE', 'ARCHIVE')),
+            periode_jour_nuit VARCHAR,
+            jour_semaine VARCHAR,
+            mois VARCHAR
+        )
+    """)
+
     con.execute(f"""
-        CREATE TABLE maintenances AS 
+        INSERT INTO maintenances 
         SELECT 
             id,
             scraped_at::TIMESTAMP as scraped_at,
@@ -50,6 +75,10 @@ def build_db(data_dir: Path, db_path: Path):
             ST_Point(centroide.lon, centroide.lat) as geom,
             -- Status active/archive
             contains(filename, '/active/') as est_active,
+            CASE 
+                WHEN contains(filename, '/active/') THEN 'ACTIVE'
+                ELSE 'ARCHIVE'
+            END as statut,
             -- Champs calculés pour faciliter les analyses
             CASE 
                 WHEN hour(timestamp_debut::TIMESTAMP) BETWEEN 6 AND 18 THEN 'JOUR (06h-18h)'
