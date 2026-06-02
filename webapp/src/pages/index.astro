@@ -24,6 +24,19 @@ const commitSha = execSync('git rev-parse --short HEAD', { cwd: resolve(process.
   .toString().trim();
 const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""', { cwd: resolve(process.cwd(), '..') })
   .toString().trim();
+
+const lastScrapedAt = maintenances.length
+  ? maintenances.reduce((max, m) => m.scraped_at > max ? m.scraped_at : max, maintenances[0].scraped_at)
+  : null;
+const lastRefresh = lastScrapedAt
+  ? new Date(lastScrapedAt).toLocaleString('fr-NC', { timeZone:'Pacific/Noumea', weekday:'short', day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+  : null;
+const nextRefreshDate = lastScrapedAt ? (() => {
+  const d = new Date(lastScrapedAt);
+  d.setUTCMinutes(0, 0, 0);
+  d.setUTCHours(d.getUTCHours() + 1);
+  return d.toLocaleString('fr-NC', { timeZone:'Pacific/Noumea', hour:'2-digit', minute:'2-digit' });
+})() : null;
 ---
 
 <html lang="fr">
@@ -176,6 +189,15 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       </nav>
     </header>
 
+    {lastRefresh && (
+      <div class="flex items-center gap-2 px-4 py-1.5 bg-[#13151f] border-b border-[#2d3148] text-xs text-slate-500 shrink-0">
+        <i class="fa-solid fa-rotate text-[#4c3f8a]"></i>
+        <span>Dernière synchro&nbsp;: <span class="text-slate-400">{lastRefresh}</span></span>
+        <span class="text-[#2d3148]">·</span>
+        <i class="fa-regular fa-clock text-[#4c3f8a]"></i>
+        <span>Prochain refresh&nbsp;: <span class="text-slate-400">{nextRefreshDate}</span></span>
+      </div>
+    )}
     <div class="layout">
       <aside>
         <div class="filters">
@@ -524,8 +546,10 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
         const m = displayed.find(x => x.id === id);
         if (!m) return;
         openDetail(m);
-        const gp = focusCommune ? m.communes_geopoints.find(g => g.commune === focusCommune) : m.communes_geopoints[0];
-        if (gp) map.flyTo({ center:[gp.lon, gp.lat], zoom:9, duration:800 });
+        if (!fromTour) {
+          const gp = focusCommune ? m.communes_geopoints.find(g => g.commune === focusCommune) : m.communes_geopoints[0];
+          if (gp) map.flyTo({ center:[gp.lon, gp.lat], zoom:9, duration:800 });
+        }
       }
 
       document.getElementById("detail-close").addEventListener("click", closeDetail);
@@ -533,12 +557,14 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); stopTour(); } });
 
       // ── Tour des maintenances ─────────────────────────────────────────────
-      let tourTimeout = null, tourIndex = 0, tourActivePopup = null;
-      const TOUR_DELAY = 4500;
+      let tourTimeout = null, tourRunning = false, tourIndex = 0, tourActivePopup = null;
+      const TOUR_DELAY   = 6000;
+      const TOUR_FLY_MS  = 2000;
+      const TOUR_BEARINGS = [-20, 20, -35, 10, 35, -10, 0, 25, -25, 15];
 
       function updateTourBtn() {
         const btn = document.getElementById("btn-tour");
-        if (tourTimeout !== null) {
+        if (tourRunning) {
           btn.innerHTML = `<i class="fa-solid fa-stop"></i> Tour ${tourIndex} / ${displayed.length}`;
           btn.classList.add("running");
         } else {
@@ -564,6 +590,7 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       }
 
       function showTourPopup(m) {
+        if (!tourRunning) return;
         hideTourPopup();
         const gp = m.communes_geopoints[0];
         if (!gp) return;
@@ -576,11 +603,19 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
       }
 
       function tourStep() {
-        if (!displayed.length || tourIndex >= displayed.length) { stopTour(); return; }
-        const m = displayed[tourIndex];
+        if (!tourRunning || !displayed.length || tourIndex >= displayed.length) { stopTour(); return; }
+        const m   = displayed[tourIndex];
+        const gp  = m.communes_geopoints[0];
+        const bearing = TOUR_BEARINGS[tourIndex % TOUR_BEARINGS.length];
+
         selectMaintenance(m.id, null, true);
         startTourProgressBar(m.id);
-        showTourPopup(m);
+
+        if (gp) {
+          map.flyTo({ center:[gp.lon, gp.lat], zoom:11, pitch:50, bearing, duration:TOUR_FLY_MS, essential:true });
+          setTimeout(() => showTourPopup(m), TOUR_FLY_MS + 100);
+        }
+
         tourIndex++;
         updateTourBtn();
         tourTimeout = setTimeout(tourStep, TOUR_DELAY);
@@ -588,20 +623,23 @@ const gitTag = execSync('git describe --tags --abbrev=0 2>/dev/null || echo ""',
 
       function startTour() {
         if (!displayed.length) return;
-        tourIndex = 0;
+        tourIndex  = 0;
+        tourRunning = true;
         tourStep();
       }
 
       function stopTour() {
-        if (tourTimeout === null) return;
+        if (!tourRunning) return;
         clearTimeout(tourTimeout);
-        tourTimeout = null;
+        tourTimeout  = null;
+        tourRunning  = false;
         hideTourPopup();
+        map.easeTo({ pitch:0, bearing:0, duration:800 });
         updateTourBtn();
       }
 
       document.getElementById("btn-tour").addEventListener("click", () => {
-        if (tourTimeout !== null) stopTour(); else startTour();
+        if (tourRunning) stopTour(); else startTour();
       });
 
       // ── Swipe-down pour fermer le drawer (mobile) ────────────────────────
