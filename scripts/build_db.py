@@ -48,6 +48,8 @@ def build_db(data_dir: Path, db_path: Path):
             centroide.lat as centroide_lat,
             centroide.lon as centroide_lon,
             ST_Point(centroide.lon, centroide.lat) as geom,
+            -- Status active/archive
+            contains(filename, '/active/') as est_active,
             -- Champs calculés pour faciliter les analyses
             CASE 
                 WHEN hour(timestamp_debut::TIMESTAMP) BETWEEN 6 AND 18 THEN 'JOUR (06h-18h)'
@@ -55,7 +57,7 @@ def build_db(data_dir: Path, db_path: Path):
             END as periode_jour_nuit,
             dayname(timestamp_debut::TIMESTAMP) as jour_semaine,
             monthname(timestamp_debut::TIMESTAMP) as mois
-        FROM read_json_auto({paths})
+        FROM read_json_auto({paths}, filename=true)
     """)
 
     # Create communes table

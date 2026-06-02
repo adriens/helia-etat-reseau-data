@@ -12,6 +12,9 @@ dimensions:
   - name: impact
     label: Impact
     column: impact
+  - name: est_active
+    label: Est Active
+    column: est_active
   - name: periode_jour_nuit
     label: Période (Jour/Nuit)
     column: periode_jour_nuit
