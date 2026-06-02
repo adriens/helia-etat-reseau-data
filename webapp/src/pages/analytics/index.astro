@@ -150,6 +150,19 @@ for (const m of active) {
   durationBuckets[bucket] = (durationBuckets[bucket] ?? 0) + 1;
 }
 
+// ── Commune 3D geo data for deck.gl ──────────────────────────────────────────
+const communeGeoMap: Record<string, [number, number]> = {};
+for (const m of active) {
+  for (const gp of m.communes_geopoints ?? []) {
+    if (gp.commune && gp.lat != null && gp.lon != null) {
+      communeGeoMap[gp.commune] = [gp.lon, gp.lat];
+    }
+  }
+}
+const DECK_DATA = Object.entries(communeCount)
+  .filter(([c]) => communeGeoMap[c])
+  .map(([commune, count]) => ({ commune, position: communeGeoMap[commune], count }));
+
 // Pass serialisable data to client
 const CHART_DATA = {
   topCommunes: { labels: topCommunes.map(([c]) => c), values: topCommunes.map(([, n]) => n) },
@@ -178,6 +191,8 @@ const KPIS = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Analytics — Helia NC</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <script is:inline src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     <style>
       *, *::before, *::after { box-sizing: border-box; }
       body { margin: 0; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; min-height: 100dvh; }
@@ -221,6 +236,14 @@ const KPIS = {
       .chart-wrap.h-sm { height:220px; }
       .chart-wrap.h-md { height:300px; }
       .chart-wrap.h-lg { height:340px; }
+
+      /* Deck.gl map card */
+      .map3d-card { background:#13151f; border:1px solid #2d3148; border-radius:12px; overflow:hidden; margin-bottom:16px; }
+      .map3d-header { padding:16px 20px 12px; display:flex; align-items:center; gap:6px; }
+      .map3d-header i { color:#e5009f; }
+      .map3d-hint { margin-left:auto; font-size:.65rem; color:#334155; font-weight:400; text-transform:none; letter-spacing:0; }
+      #deck-map { height:520px; width:100%; }
+      .maplibregl-canvas { border-radius:0; }
     </style>
   </head>
   <body>
@@ -298,11 +321,21 @@ const KPIS = {
         </div>
       </div>
 
+      <!-- 3D Commune Map -->
+      <div class="map3d-card">
+        <div class="map3d-header chart-title">
+          <i class="fa-solid fa-map-location-dot"></i> Carte 3D — Interventions par commune
+          <span class="map3d-hint">scroll = zoom · maj+glisser = pivoter</span>
+        </div>
+        <div id="deck-map"></div>
+      </div>
+
     </div>
 
     <!-- Pass build-time data to module script via window global -->
-    <script define:vars={{ CHART_DATA }}>
+    <script define:vars={{ CHART_DATA, DECK_DATA }}>
       window.__HELIA_CHARTS__ = CHART_DATA;
+      window.__HELIA_DECK__   = DECK_DATA;
     </script>
 
     <!-- Chart initialisation (module — imports chart.js from npm) -->
@@ -467,6 +500,70 @@ const KPIS = {
               y: { ticks: { stepSize: 1 }, grid: { color: '#1e2132' } },
             },
           },
+        });
+      }
+    </script>
+
+    <!-- deck.gl 3D map (module — imports from npm) -->
+    <script>
+      import { MapboxOverlay } from '@deck.gl/mapbox';
+      import { ColumnLayer }   from '@deck.gl/layers';
+
+      const data = window.__HELIA_DECK__;
+      if (!data?.length) {
+        document.getElementById('deck-map').innerHTML =
+          '<p style="color:#475569;padding:24px;font-size:.85rem">Aucune donnée géographique disponible.</p>';
+      } else {
+        const maxCount = Math.max(...data.map(d => d.count));
+
+        const map = new maplibregl.Map({
+          container: 'deck-map',
+          style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+          center: [165.5, -21.3],
+          zoom: 7,
+          pitch: 50,
+          bearing: -15,
+          antialias: true,
+        });
+
+        map.on('load', () => {
+          const overlay = new MapboxOverlay({
+            interleaved: false,
+            layers: [
+              new ColumnLayer({
+                id: 'communes-3d',
+                data,
+                diskResolution: 16,
+                radius: 6500,
+                extruded: true,
+                getPosition: d => d.position,
+                getElevation: d => (d.count / maxCount) * 180000,
+                getFillColor: d => {
+                  const t = d.count / maxCount;
+                  return [
+                    Math.round(229 * t + 99  * (1 - t)),
+                    Math.round(0   * t + 102 * (1 - t)),
+                    Math.round(159 * t + 241 * (1 - t)),
+                    210,
+                  ];
+                },
+                pickable: true,
+                autoHighlight: true,
+                highlightColor: [255, 255, 255, 90],
+                material: { ambient: 0.35, diffuse: 0.6, shininess: 32, specularColor: [230, 0, 160] },
+              }),
+            ],
+            getTooltip: ({ object }) => object && {
+              html: `<b>${object.commune}</b><br>${object.count} intervention${object.count > 1 ? 's' : ''}`,
+              style: {
+                background: '#13151f', color: '#e2e8f0',
+                border: '1px solid #2d3148', borderRadius: '8px',
+                padding: '8px 12px', fontSize: '13px',
+                fontFamily: 'system-ui, sans-serif',
+              },
+            },
+          });
+          map.addControl(overlay);
         });
       }
     </script>
