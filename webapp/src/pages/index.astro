@@ -620,9 +620,26 @@ const lastRefresh = lastScrapedAt
           }
 
           const tip = _bezier(pA, ctrl, pB, t);
+
+          // Halo (fades as arc progresses)
           _ctx.globalAlpha = 0.35 * (1 - t * 0.4);
           _ctx.fillStyle = color;
           _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 11, 0, Math.PI * 2); _ctx.fill();
+
+          // Bloom flash: s'embrase à l'arrivée (t > 0.65)
+          if (t > 0.65) {
+            const flash = (t - 0.65) / 0.35;
+            _ctx.save();
+            _ctx.shadowBlur  = 40 * flash;
+            _ctx.shadowColor = color;
+            _ctx.globalAlpha = 0.55 * flash;
+            _ctx.fillStyle   = color;
+            _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 20, 0, Math.PI * 2); _ctx.fill();
+            _ctx.shadowBlur  = 0;
+            _ctx.restore();
+          }
+
+          // White dot
           _ctx.globalAlpha = 0.95; _ctx.fillStyle = '#ffffff';
           _ctx.beginPath(); _ctx.arc(tip.x, tip.y, 5, 0, Math.PI * 2); _ctx.fill();
           _ctx.restore();
@@ -652,14 +669,34 @@ const lastRefresh = lastScrapedAt
           _ctx.save();
           _ctx.scale(dpr, dpr);
 
+          // Bloom: halo qui respire (sinusoïde ~1.4 s)
+          const breath = 0.5 + 0.5 * Math.sin(elapsed / 700 * Math.PI);
+          _ctx.save();
+          _ctx.shadowBlur  = 28 + 18 * breath;
+          _ctx.shadowColor = color;
+          _ctx.globalAlpha = 0.22 + 0.12 * breath;
+          _ctx.fillStyle   = color;
+          _ctx.beginPath(); _ctx.arc(p.x, p.y, 16 + 6 * breath, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur  = 0;
+          _ctx.restore();
+
+          // Ping rings
           for (let i = 0; i < NUM_RINGS; i++) {
             const t      = ((elapsed / PING_CYCLE) - i / NUM_RINGS + 10) % 1;
             _ctx.globalAlpha = Math.max(0, (1 - t) * 0.75);
             _ctx.strokeStyle = color; _ctx.lineWidth = 2;
             _ctx.beginPath(); _ctx.arc(p.x, p.y, t * MAX_RADIUS, 0, Math.PI * 2); _ctx.stroke();
           }
+
+          // Center dot (légère lueur blanche)
+          _ctx.save();
+          _ctx.shadowBlur  = 8;
+          _ctx.shadowColor = '#ffffff';
           _ctx.globalAlpha = 0.9; _ctx.fillStyle = '#ffffff';
           _ctx.beginPath(); _ctx.arc(p.x, p.y, 6, 0, Math.PI * 2); _ctx.fill();
+          _ctx.shadowBlur  = 0;
+          _ctx.restore();
+
           _ctx.restore();
 
           _pingAnimId = requestAnimationFrame(frame);
