@@ -47,7 +47,14 @@ def build_db(data_dir: Path, db_path: Path):
             scraped_at_local::TIMESTAMP as scraped_at_local,
             centroide.lat as centroide_lat,
             centroide.lon as centroide_lon,
-            ST_Point(centroide.lon, centroide.lat) as geom
+            ST_Point(centroide.lon, centroide.lat) as geom,
+            -- Champs calculés pour faciliter les analyses
+            CASE 
+                WHEN hour(timestamp_debut::TIMESTAMP) BETWEEN 6 AND 18 THEN 'JOUR (06h-18h)'
+                ELSE 'NUIT (18h-06h)'
+            END as periode_jour_nuit,
+            dayname(timestamp_debut::TIMESTAMP) as jour_semaine,
+            monthname(timestamp_debut::TIMESTAMP) as mois
         FROM read_json_auto({paths})
     """)
 
