@@ -916,11 +916,11 @@ const COMMUNE_POPULATION: Record<string, number> = {
           const sv = SVC[s] ?? { icon: 'fa-circle-nodes', label: s.replace(/_/g,' ') };
           return `<span class="tp-svc"><i class="fa-solid ${sv.icon}"></i>${sv.label}</span>`;
         }).join('');
-        const pop  = COMMUNE_POPULATION[gp.commune];
+        const pop  = gp.population ?? COMMUNE_POPULATION[gp.commune];
         const popHtml = pop != null
           ? `<span class="tp-pop"><i class="fa-solid fa-people-group"></i>${pop.toLocaleString('fr-FR')} hab.</span>`
           : '';
-        const totalPop = m.communes_concernees.reduce((s, c) => s + (COMMUNE_POPULATION[c] ?? 0), 0);
+        const totalPop = (m.communes_geopoints ?? []).reduce((s, g) => s + (g.population ?? COMMUNE_POPULATION[g.commune] ?? 0), 0);
         const totalPopHtml = totalPop > 0
           ? `<div class="tp-total-pop"><i class="fa-solid fa-users"></i>Population totale concernée : <strong>${totalPop.toLocaleString('fr-FR')} hab.</strong></div>`
           : '';
