@@ -947,6 +947,20 @@ const COMMUNE_POPULATION: Record<string, number> = {
         const popHtml = pop != null
           ? `<span class="tp-pop"><i class="fa-solid fa-people-group"></i>${pop.toLocaleString('fr-FR')} hab.</span>`
           : '';
+        const now = Date.now();
+        const tDebut = m.timestamp_debut ? new Date(m.timestamp_debut).getTime() : null;
+        const tFin   = m.timestamp_fin   ? new Date(m.timestamp_fin).getTime()   : null;
+        let pct = 0;
+        if (tDebut && tFin && tFin > tDebut) {
+          if (now >= tFin) pct = 100;
+          else if (now >= tDebut) pct = Math.round((now - tDebut) / (tFin - tDebut) * 100);
+        }
+        const progressHtml = (tDebut && tFin)
+          ? `<div class="tp-progress-wrap">
+               <div class="tp-progress-bar-track"><div class="tp-progress-bar-fill ${im.cls}" style="width:${pct}%"></div></div>
+               <div class="tp-progress-label">${pct}% écoulé</div>
+             </div>`
+          : '';
         const html = `<div class="tp">
           <div class="tp-commune"><i class="fa-solid fa-location-dot"></i><a class="tp-commune-link" href="/helia-etat-reseau-data/commune/${encodeURIComponent(gp.commune)}/" target="_blank">${gp.commune}</a>${popHtml}</div>
           <div class="tp-svcs">${svcs}</div>
@@ -954,7 +968,8 @@ const COMMUNE_POPULATION: Record<string, number> = {
             <span class="tp-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
             <span class="tp-dates">${fmtShort(m.timestamp_debut)} → ${fmtShort(m.timestamp_fin)}</span>
             <a class="tp-id" href="/helia-etat-reseau-data/intervention/${m.id}" target="_blank" title="Voir le détail de l'intervention"><i class="fa-solid fa-fingerprint"></i>${m.id}</a>
-          </div></div>`;
+          </div>
+          ${progressHtml}</div>`;
         tourActivePopup = new maplibregl.Popup({
           closeButton: false, closeOnClick: false, offset: 22,
           className: "helia-popup helia-tour-popup", maxWidth: "320px",
@@ -1094,6 +1109,13 @@ const COMMUNE_POPULATION: Record<string, number> = {
   .tp-total-pop { display: flex; align-items: center; gap: 6px; padding: 6px 12px 8px; font-size: .75rem; color: #cbd5e1; border-top: 1px solid #2d3148; }
   .tp-total-pop i { color: #e5009f; font-size: .72rem; }
   .tp-total-pop strong { color: #f8fafc; }
+  .tp-progress-wrap { padding: 0 12px 10px; }
+  .tp-progress-bar-track { height: 5px; background: #1a1535; border-radius: 3px; overflow: hidden; }
+  .tp-progress-bar-fill { height: 100%; border-radius: 3px; transition: width .3s ease; }
+  .tp-progress-bar-fill.imp-30 { background: linear-gradient(90deg, #b91c1c, #f87171); }
+  .tp-progress-bar-fill.imp-20 { background: linear-gradient(90deg, #c2410c, #fb923c); }
+  .tp-progress-bar-fill.imp-ad { background: linear-gradient(90deg, #d97706, #eab308); }
+  .tp-progress-label { font-size: .62rem; color: #64748b; text-align: right; margin-top: 3px; }
   @keyframes dot-ping {
     0%   { box-shadow: 0 0 0  0px rgba(255,255,255,.7); }
     60%  { box-shadow: 0 0 0 18px rgba(255,255,255,.15); }
