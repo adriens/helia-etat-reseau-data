@@ -63,7 +63,7 @@ const IMPACT_LABEL: Record<string, string> = {
       .card {
         background: #252d48;
         border-radius: 8px;
-        padding: 12px 14px 11px 17px;
+        padding: 9px 12px 8px 14px;
         outline: 1px solid #3a4268;
         border-left: 4px solid #6672cc;
         box-shadow: 0 3px 10px rgba(0,0,0,0.55);
@@ -80,32 +80,36 @@ const IMPACT_LABEL: Record<string, string> = {
       .card.accent-orange:hover { outline-color: #fb923caa; box-shadow: 0 6px 18px rgba(251,146,60,0.2); }
       .card.accent-gray:hover   { outline-color: #5c6490; }
 
-      .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; gap: 8px; }
-      .card-id { font-size:.72rem; font-family: monospace; color:#818cf8; background:#1e1b4b; padding:2px 8px; border-radius:6px; flex-shrink:0; letter-spacing:.03em; }
-      .impact-badge { font-size:.7rem; font-weight:600; padding:3px 9px; border-radius:12px; white-space:nowrap; }
+      .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 6px; }
+      .card-id { font-size:.68rem; font-family: monospace; color:#818cf8; background:#1e1b4b; padding:1px 6px; border-radius:5px; flex-shrink:0; letter-spacing:.03em; }
+      .impact-badge { font-size:.66rem; font-weight:600; padding:2px 7px; border-radius:10px; white-space:nowrap; }
       .impact-badge.red    { background:#2a0820; color:#f87171; border:1px solid #f8717133; }
       .impact-badge.orange { background:#1c1008; color:#fb923c; border:1px solid #fb923c33; }
       .impact-badge.gray   { background:#1e293b; color:#94a3b8; border:1px solid #33415566; }
 
-      .card-divider { border: none; border-top: 1px solid #353a55; margin: 9px 0; }
+      .card-divider { border: none; border-top: 1px solid #353a55; margin: 6px 0; }
 
-      .card-communes { font-size:.82rem; color:#cbd5e1; margin-bottom:8px; line-height:1.5; }
+      .card-communes { font-size:.8rem; color:#cbd5e1; margin-bottom:5px; line-height:1.4; display:flex; align-items:baseline; gap:5px; }
+      .card-pin { font-size:.75rem; flex-shrink:0; }
       .card-communes strong { color:#f1f5f9; font-weight:600; }
-      .card-more { color:#64748b; font-size:.75rem; }
+      .card-more { color:#64748b; font-size:.72rem; }
 
-      .card-dates { font-size:.75rem; color:#64748b; display:flex; flex-direction:column; gap:3px; margin-bottom:9px; }
-      .card-dates span { display:flex; align-items:center; gap:6px; }
-      .card-dates i { width:12px; color:#475569; flex-shrink:0; }
+      .card-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
+      .card-dates { font-size:.72rem; color:#64748b; display:flex; align-items:center; gap:5px; }
+      .card-dates i { color:#475569; font-size:.6rem; }
+      .card-dates .arr { color:#2d3148; }
+      .card-pop { font-size:.68rem; color:#7c6aad; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+      .card-pop i { font-size:.6rem; color:#4c3f8a; }
 
-      .card-services { display:flex; flex-wrap:wrap; gap:4px; }
-      .svc-badge { font-size:.65rem; background:#0f1117; border:1px solid #2d3148; color:#64748b; padding:2px 7px; border-radius:6px; }
+      .card-services { display:flex; flex-wrap:wrap; gap:3px; }
+      .svc-badge { font-size:.62rem; background:#0f1117; border:1px solid #2d3148; color:#64748b; padding:1px 6px; border-radius:5px; }
 
-      .card-progress { height: 5px; background: #13162a; border-radius: 3px; margin-top: 10px; overflow: hidden; }
-      .card-progress-bar { height: 100%; border-radius: 3px; transition: width .5s ease; min-width: 0; }
+      .card-progress { height: 4px; background: #13162a; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+      .card-progress-bar { height: 100%; border-radius: 2px; transition: width .5s ease; min-width: 0; }
       .card.accent-red    .card-progress-bar { background: linear-gradient(90deg, #b91c1c, #f87171); }
       .card.accent-orange .card-progress-bar { background: linear-gradient(90deg, #c2410c, #fb923c); }
       .card.accent-gray   .card-progress-bar { background: linear-gradient(90deg, #4c5499, #818cf8); }
-      .card-progress-label { font-size:.62rem; color:#475569; margin-top:4px; text-align:right; }
+      .card-progress-label { font-size:.6rem; color:#475569; margin-top:3px; text-align:right; }
 
       .empty { text-align:center; padding:24px 12px; color:#475569; font-size:.82rem; }
       .empty i { display:block; font-size:1.5rem; margin-bottom:6px; opacity:.4; }
@@ -251,6 +255,10 @@ const IMPACT_LABEL: Record<string, string> = {
         const impactKey = m.impact ?? 'A_DETERMINER';
         const accentClass = IMPACT_CLASS[impactKey] ?? 'gray';
         const pct = getProgress(m, now);
+        const totalPop = communes.reduce((s, c) => s + (COMMUNE_POPULATION[c] ?? 0), 0);
+        const popHtml = totalPop > 0
+          ? `<span class="card-pop"><i class="fa-solid fa-people-group"></i>${totalPop.toLocaleString('fr')} hab.</span>`
+          : '';
         const progressHtml = pct !== null
           ? `<div class="card-progress"><div class="card-progress-bar" style="width:${pct}%"></div></div>
              <div class="card-progress-label">${pct}%</div>`
@@ -263,11 +271,16 @@ const IMPACT_LABEL: Record<string, string> = {
             </div>
             <hr class="card-divider">
             <div class="card-communes">
-              <strong>${shown.join(', ')}</strong>${extra > 0 ? ` <span class="card-more">+${extra} autres</span>` : ''}
+              <span class="card-pin">📍</span><strong>${shown.join(', ')}</strong>${extra > 0 ? ` <span class="card-more">+${extra} autres</span>` : ''}
             </div>
-            <div class="card-dates">
-              <span><i class="fa-solid fa-play"></i> ${m.timestamp_debut ? toNCStr(m.timestamp_debut) : '—'}</span>
-              <span><i class="fa-solid fa-stop"></i> ${m.timestamp_fin ? toNCStr(m.timestamp_fin) : '—'}</span>
+            <div class="card-meta">
+              <div class="card-dates">
+                <i class="fa-solid fa-clock"></i>
+                ${m.timestamp_debut ? toNCStr(m.timestamp_debut) : '—'}
+                <span class="arr">→</span>
+                ${m.timestamp_fin ? toNCStr(m.timestamp_fin) : '—'}
+              </div>
+              ${popHtml}
             </div>
             <div class="card-services">
               ${services.map(s => `<span class="svc-badge">${s}</span>`).join('')}
