@@ -40,12 +40,19 @@ jobs:
           git add -A
           git commit -m "${{ steps.sync.outputs.pr_title }}"
           git push origin "$BRANCH"
-          gh pr create \
+          PR_URL=$(gh pr create \
             --title "${{ steps.sync.outputs.pr_title }}" \
             --body "${{ steps.sync.outputs.pr_body }}" \
             --base main \
-            --head "$BRANCH"
-          gh pr merge "$BRANCH" --squash --delete-branch
+            --head "$BRANCH")
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          gh pr merge "$PR_NUMBER" --squash --delete-branch --auto
+          echo "Attente du merge (max 5 min)..."
+          for i in $(seq 1 30); do
+            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+            [ "$STATE" = "MERGED" ] && echo "PR #$PR_NUMBER mergée." && break
+            sleep 10
+          done
 
       - name: Bumper la version SemVer
         if: steps.sync.outputs.changed == 'true'
