@@ -945,14 +945,9 @@ const COMMUNE_POPULATION: Record<string, number> = {
         const popHtml = pop != null
           ? `<span class="tp-pop"><i class="fa-solid fa-people-group"></i>${pop.toLocaleString('fr-FR')} hab.</span>`
           : '';
-        const totalPop = (m.communes_geopoints ?? []).reduce((s, g) => s + (g.population ?? COMMUNE_POPULATION[g.commune] ?? 0), 0);
-        const totalPopHtml = totalPop > 0
-          ? `<div class="tp-total-pop"><i class="fa-solid fa-users"></i>Population totale concernée : <strong>${totalPop.toLocaleString('fr-FR')} hab.</strong></div>`
-          : '';
         const html = `<div class="tp">
           <div class="tp-commune"><i class="fa-solid fa-location-dot"></i><a class="tp-commune-link" href="/helia-etat-reseau-data/commune/${encodeURIComponent(gp.commune)}/" target="_blank">${gp.commune}</a>${popHtml}</div>
           <div class="tp-svcs">${svcs}</div>
-          ${totalPopHtml}
           <div class="tp-foot">
             <span class="tp-impact ${im.cls}"><i class="fa-solid ${im.icon}"></i>${im.label}</span>
             <span class="tp-dates">${fmtShort(m.timestamp_debut)} → ${fmtShort(m.timestamp_fin)}</span>
