@@ -167,6 +167,24 @@ const IMPACT_LABEL: Record<string, string> = {
       .card.accent-orange .card-sparkline-fill { background:linear-gradient(90deg,#c2410c,#fb923c); }
       .card.accent-gray   .card-sparkline-fill { background:linear-gradient(90deg,#4c5499,#818cf8); }
       .card-sparkline-label { font-size:.58rem; color:#374151; margin-top:2px; text-align:right; }
+
+      /* Heatmap */
+      .heatmap-section { margin-top:40px; padding-top:32px; border-top:1px solid #252a42; }
+      .heatmap-title { font-size:.82rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+      .heatmap-title i { color:#e5009f; }
+      .heatmap-scroll { overflow-x:auto; padding-bottom:6px; }
+      .heatmap-grid { display:grid; grid-template-columns: 72px repeat(24, 1fr); gap:3px; min-width:680px; }
+      .hm-corner {}
+      .hm-hour-label { font-size:.56rem; color:#374151; text-align:center; padding:2px 0; }
+      .hm-day-label { font-size:.63rem; color:#475569; display:flex; align-items:center; padding-right:6px; white-space:nowrap; }
+      .hm-day-label.hm-today { color:#e2e8f0; font-weight:700; }
+      .hm-cell { height:26px; border-radius:4px; display:flex; align-items:center; justify-content:center; cursor:default; transition:transform .1s, outline .1s; position:relative; }
+      .hm-cell:hover { transform:scale(1.2); z-index:5; outline:2px solid #e5009f88; }
+      .hm-cell span { font-size:.58rem; font-weight:800; color:rgba(255,255,255,.9); pointer-events:none; }
+      .hm-legend { display:flex; align-items:center; gap:10px; margin-top:10px; }
+      .hm-legend-bar { flex:1; height:6px; border-radius:3px; background:linear-gradient(90deg,#13162a,#e5009f); max-width:160px; }
+      .hm-legend-label { font-size:.62rem; color:#374151; }
+      .hm-now-marker { background:#e5009f22; outline:1px solid #e5009f88; }
     </style>
   </head>
   <body>
@@ -221,6 +239,18 @@ const IMPACT_LABEL: Record<string, string> = {
           <div class="col-cards" id="col-done">
             <div class="empty"><i class="fa-solid fa-archive"></i>Aucune intervention terminée</div>
           </div>
+        </div>
+      </div>
+
+      <div class="heatmap-section">
+        <div class="heatmap-title"><i class="fa-solid fa-fire"></i> Carte thermique — 7 prochains jours</div>
+        <div class="heatmap-scroll">
+          <div class="heatmap-grid" id="heatmap-grid"></div>
+        </div>
+        <div class="hm-legend">
+          <span class="hm-legend-label">0</span>
+          <div class="hm-legend-bar"></div>
+          <span class="hm-legend-label" id="hm-legend-max">max</span>
         </div>
       </div>
     </div>
@@ -485,6 +515,60 @@ const IMPACT_LABEL: Record<string, string> = {
         fill('col-upcoming', 'count-upcoming', upcoming);
         fill('col-ongoing',  'count-ongoing',  ongoing);
         fill('col-done',     'count-done',     done);
+        buildHeatmap(now);
+      }
+
+      function buildHeatmap(now) {
+        const DAYS = 7;
+        const DAY_NAMES = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+        // Midnight today in NC time (expressed as UTC ms)
+        const ncNow = new Date(now + NC_OFFSET_MS);
+        const todayStartUTC = Date.UTC(ncNow.getUTCFullYear(), ncNow.getUTCMonth(), ncNow.getUTCDate()) - NC_OFFSET_MS;
+        const nowHourNC = ncNow.getUTCHours();
+        const todayDayIdx = 0;
+
+        const grid  = Array.from({length: DAYS}, () => new Array(24).fill(0));
+        const cells = Array.from({length: DAYS}, () => Array.from({length: 24}, () => []));
+
+        for (const m of maintenances) {
+          if (!m.timestamp_debut || !m.timestamp_fin) continue;
+          const startMs = new Date(m.timestamp_debut).getTime();
+          const endMs   = new Date(m.timestamp_fin).getTime();
+          for (let d = 0; d < DAYS; d++) {
+            for (let h = 0; h < 24; h++) {
+              const slotStart = todayStartUTC + d * 86400000 + h * 3600000;
+              const slotEnd   = slotStart + 3600000;
+              if (startMs < slotEnd && endMs > slotStart) {
+                grid[d][h]++;
+                cells[d][h].push(m.communes_concernees?.slice(0,3).join(', ') ?? m.id);
+              }
+            }
+          }
+        }
+
+        const maxCount = Math.max(1, ...grid.flat());
+        document.getElementById('hm-legend-max').textContent = maxCount + ' intervention' + (maxCount > 1 ? 's' : '');
+
+        let html = `<div class="hm-corner"></div>`;
+        for (let h = 0; h < 24; h++) html += `<div class="hm-hour-label">${String(h).padStart(2,'0')}</div>`;
+
+        for (let d = 0; d < DAYS; d++) {
+          const dayDate  = new Date(todayStartUTC + NC_OFFSET_MS + d * 86400000);
+          const dayName  = DAY_NAMES[dayDate.getUTCDay()];
+          const dayLabel = `${dayName} ${String(dayDate.getUTCDate()).padStart(2,'0')}/${String(dayDate.getUTCMonth()+1).padStart(2,'0')}`;
+          html += `<div class="hm-day-label${d === 0 ? ' hm-today' : ''}">${dayLabel}</div>`;
+          for (let h = 0; h < 24; h++) {
+            const count = grid[d][h];
+            const isNow = d === todayDayIdx && h === nowHourNC;
+            const intensity = count / maxCount;
+            const bg = count === 0
+              ? '#13162a'
+              : `rgba(229,0,159,${(0.15 + intensity * 0.85).toFixed(2)})`;
+            const tip = count > 0 ? `${count} intervention(s) — ${cells[d][h].join(' | ')}` : '';
+            html += `<div class="hm-cell${isNow ? ' hm-now-marker' : ''}" style="background:${bg}" title="${tip}">${count > 0 ? `<span>${count}</span>` : ''}</div>`;
+          }
+        }
+        document.getElementById('heatmap-grid').innerHTML = html;
       }
 
       function updateClock() {
