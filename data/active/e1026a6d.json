@@ -1,0 +1,51 @@
+{
+  "id": "e1026a6d",
+  "scraped_at": "2026-06-05T03:59:26Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-06-16T23:00:00+11:00",
+  "timestamp_fin": "2026-06-17T05:00:00+11:00",
+  "duree_fenetre_minutes": 360,
+  "duree_coupure_min_minutes": 20,
+  "duree_coupure_max_minutes": 30,
+  "communes_concernees": [
+    "NOUMEA",
+    "HOUAILOU",
+    "MONT-DORE"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "COUPURE_20_30_MIN",
+  "nb_communes_concernees": 3,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD",
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-06-05T14:59:26+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "NOUMEA",
+      "lat": -22.2578,
+      "lon": 166.45009,
+      "population": 94285
+    },
+    {
+      "commune": "HOUAILOU",
+      "lat": -21.330198,
+      "lon": 165.549981,
+      "population": 3955
+    },
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493,
+      "population": 27620
+    }
+  ],
+  "centroide": {
+    "lat": -21.954554333333334,
+    "lon": 166.24285466666666
+  }
+}
