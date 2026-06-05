@@ -45,9 +45,6 @@ const COMMUNE_POPULATION: Record<string, number> = {
   THIO: 2524, TOUHO: 2380, VOH: 2856, YATE: 1667,
 };
 
-const allCommunes = [...new Set(
-  maintenances.flatMap((m: any) => m.communes_concernees ?? [])
-)].sort() as string[];
 ---
 
 <html lang="fr">
@@ -247,13 +244,6 @@ const allCommunes = [...new Set(
     <div class="layout">
       <aside>
         <div class="filters">
-          <datalist id="communes-list">
-            {allCommunes.map(c => <option value={c} />)}
-          </datalist>
-          <div>
-            <label for="filter-commune">Commune</label>
-            <input id="filter-commune" type="text" placeholder="ex: NOUMEA" list="communes-list" autocomplete="off" />
-          </div>
           <div>
             <label for="filter-service">Service</label>
             <select id="filter-service">
@@ -378,10 +368,8 @@ const allCommunes = [...new Set(
       };
 
       function applyFilters(data) {
-        const commune = normalize(document.getElementById("filter-commune").value.trim());
         const service = document.getElementById("filter-service").value;
         return data.filter(m => {
-          if (commune && !m.communes_concernees.some(c => normalize(c).includes(commune))) return false;
           if (service && !m.services.includes(service)) return false;
           return true;
         });
@@ -553,7 +541,7 @@ const allCommunes = [...new Set(
           : communes.map(c => {
               const pop = COMMUNE_POPULATION[c];
               const popHtml = pop ? `<span class="detail-pill-pop">${pop.toLocaleString('fr-FR')} hab.</span>` : "";
-              return `<button class="detail-pill detail-pill-clickable" data-commune="${c}">${c}${popHtml}</button>`;
+              return `<span class="detail-pill">${c}${popHtml}</span>`;
             }).join("");
         detailTitle.innerHTML = `
           <span class="detail-id">#${m.id}</span>
@@ -584,13 +572,6 @@ const allCommunes = [...new Set(
         renderDetail(m);
         detailEl.classList.add("visible");
         backdropEl.classList.add("visible");
-        detailEl.querySelectorAll(".detail-pill-clickable").forEach(btn => {
-          btn.addEventListener("click", () => {
-            document.getElementById("filter-commune").value = btn.dataset.commune;
-            closeDetail();
-            doFilter();
-          });
-        });
       }
       function closeDetail() {
         detailEl.classList.remove("visible");
@@ -1040,13 +1021,10 @@ const allCommunes = [...new Set(
       function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
       function doFilter() { stopTour(); renderList(applyFilters(allMaintenances)); }
 
-      document.getElementById("filter-commune").addEventListener("input",   debounce(doFilter, 220));
-      document.getElementById("filter-commune").addEventListener("keydown", (e) => { if (e.key === "Enter") doFilter(); });
       document.getElementById("filter-service").addEventListener("change",  doFilter);
 
       document.getElementById("btn-reset").addEventListener("click", () => {
-        document.getElementById("filter-commune").value = "";
-        document.getElementById("filter-service").value  = "";
+        document.getElementById("filter-service").value = "";
         renderList(allMaintenances, true);
         map.flyTo({ center:[165.8, -21.2], zoom:6.2, duration:600 });
       });
