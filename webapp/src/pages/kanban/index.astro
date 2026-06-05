@@ -57,26 +57,28 @@ const IMPACT_LABEL: Record<string, string> = {
       .col-count.ongoing   { background:#052e16; color:#4ade80; }
       .col-count.done      { background:#1e293b; color:#475569; }
 
-      .col-cards { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 80px; }
+      .col-cards { padding: 12px; display: flex; flex-direction: column; gap: 12px; min-height: 80px; }
 
-      /* Card — style ticket */
+      /* Card — style ticket Trello */
       .card {
-        background: #1e2235;
+        background: #252d48;
         border-radius: 8px;
-        padding: 12px 14px 11px;
-        box-shadow: 0 0 0 2px #4a5280, 0 4px 12px #00000099;
-        transition: box-shadow .15s, transform .12s;
+        padding: 12px 14px 11px 17px;
+        outline: 1px solid #3a4268;
+        border-left: 4px solid #6672cc;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.55);
+        transition: box-shadow .15s, transform .12s, outline-color .15s;
         text-decoration: none;
         color: inherit;
         display: block;
       }
-      .card:hover { transform: translateY(-2px); }
-      .card.accent-red    { box-shadow: 0 0 0 2px #f87171, 0 4px 16px #f8717140; }
-      .card.accent-orange { box-shadow: 0 0 0 2px #fb923c, 0 4px 16px #fb923c40; }
-      .card.accent-gray   { box-shadow: 0 0 0 2px #4a5280, 0 4px 12px #00000099; }
-      .card.accent-red:hover    { box-shadow: 0 0 0 2px #f87171, 0 6px 20px #f8717160; }
-      .card.accent-orange:hover { box-shadow: 0 0 0 2px #fb923c, 0 6px 20px #fb923c60; }
-      .card.accent-gray:hover   { box-shadow: 0 0 0 2px #6672cc, 0 6px 20px #000000c0; }
+      .card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.65); outline-color: #5c6490; }
+      .card.accent-red    { border-left-color: #f87171; outline-color: #f8717155; }
+      .card.accent-orange { border-left-color: #fb923c; outline-color: #fb923c55; }
+      .card.accent-gray   { border-left-color: #6672cc; outline-color: #3a4268; }
+      .card.accent-red:hover    { outline-color: #f87171aa; box-shadow: 0 6px 18px rgba(248,113,113,0.2); }
+      .card.accent-orange:hover { outline-color: #fb923caa; box-shadow: 0 6px 18px rgba(251,146,60,0.2); }
+      .card.accent-gray:hover   { outline-color: #5c6490; }
 
       .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; gap: 8px; }
       .card-id { font-size:.72rem; font-family: monospace; color:#818cf8; background:#1e1b4b; padding:2px 8px; border-radius:6px; flex-shrink:0; letter-spacing:.03em; }
