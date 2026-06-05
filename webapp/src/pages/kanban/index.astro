@@ -101,9 +101,35 @@ const IMPACT_LABEL: Record<string, string> = {
       .empty i { display:block; font-size:1.5rem; margin-bottom:6px; opacity:.4; }
 
       .hidden { display: none; }
+
+      /* Tooltip */
+      #tt {
+        position: fixed; pointer-events: none; z-index: 9999;
+        background: #12141f; border: 1px solid #353a55; border-radius: 10px;
+        padding: 12px 14px; min-width: 220px; max-width: 300px;
+        box-shadow: 0 8px 32px #000000c0;
+        font-size: .78rem; color: #cbd5e1;
+        opacity: 0; transition: opacity .12s;
+      }
+      #tt.visible { opacity: 1; }
+      #tt.accent-red    { border-left: 3px solid #f87171; }
+      #tt.accent-orange { border-left: 3px solid #fb923c; }
+      #tt.accent-gray   { border-left: 3px solid #475569; }
+
+      .tt-countdown { font-size:.82rem; font-weight:700; margin-bottom:10px; padding:5px 10px; border-radius:8px; text-align:center; }
+      .tt-countdown.upcoming { background:#1e1b4b; color:#818cf8; }
+      .tt-countdown.ongoing  { background:#052e16; color:#4ade80; }
+      .tt-countdown.done     { background:#1e293b; color:#64748b; }
+
+      .tt-row { display:flex; justify-content:space-between; align-items:baseline; gap:8px; padding:3px 0; border-bottom:1px solid #2d314820; }
+      .tt-row:last-child { border-bottom:none; }
+      .tt-label { color:#475569; font-size:.72rem; white-space:nowrap; }
+      .tt-value { color:#e2e8f0; text-align:right; font-size:.76rem; }
+      .tt-communes { color:#e2e8f0; font-size:.76rem; line-height:1.5; }
     </style>
   </head>
   <body>
+    <div id="tt"></div>
     <div class="page">
       <a href={`${BASE}/`} class="back"><i class="fa-solid fa-arrow-left"></i> Retour à la carte</a>
 
@@ -158,7 +184,16 @@ const IMPACT_LABEL: Record<string, string> = {
       </div>
     </div>
 
-    <script define:vars={{ maintenances, BASE }}>
+    <script define:vars={{ maintenances, BASE, COMMUNE_POPULATION: {
+      BELEP:867, BOULOUPARIS:3315, BOURAIL:5531, CANALA:3701,
+      DUMBEA:35873, FARINO:712, HIENGHENE:2454, HOUAILOU:3955,
+      'ILE DES PINS':2037, 'KAALA-GOMEN':1803, KONE:8144, KOUAOUA:1304,
+      KOUMAC:3981, 'LA FOA':3552, LIFOU:9195, MARE:5757, MOINDOU:681,
+      'MONT-DORE':27620, NOUMEA:94285, OUEGOA:2118, OUVEA:3401,
+      PAITA:24563, POINDIMIE:5006, PONERIHOUEN:2420, POUEBO:2144,
+      POUEMBOUT:2752, POUM:1435, POYA:2802, SARRAMEA:572,
+      THIO:2524, TOUHO:2380, VOH:2856, YATE:1667,
+    }}}>
       const NC_OFFSET_MS = 11 * 60 * 60 * 1000;
 
       const IMPACT_LABEL = {
@@ -197,7 +232,7 @@ const IMPACT_LABEL: Record<string, string> = {
 
         const accentClass = IMPACT_CLASS[impactKey] ?? 'gray';
         return `
-          <a class="card accent-${accentClass}" href="${BASE}/intervention/${m.id}/" target="_blank" rel="noopener">
+          <a class="card accent-${accentClass}" href="${BASE}/intervention/${m.id}/" target="_blank" rel="noopener" data-id="${m.id}">
             <div class="card-top">
               <span class="card-id">${m.id}</span>
               <span class="impact-badge ${accentClass}">${IMPACT_LABEL[impactKey] ?? impactKey}</span>
@@ -215,6 +250,105 @@ const IMPACT_LABEL: Record<string, string> = {
             </div>
           </a>`;
       }
+
+      const MAINTENANCE_MAP = Object.fromEntries(maintenances.map(m => [m.id, m]));
+
+      const PROVINCE_MAP = {
+        BOULOUPARIS:'Sud', BOURAIL:'Sud', DUMBEA:'Sud', FARINO:'Sud',
+        'ILE DES PINS':'Sud', 'LA FOA':'Sud', MOINDOU:'Sud', 'MONT-DORE':'Sud',
+        NOUMEA:'Sud', PAITA:'Sud', SARRAMEA:'Sud', THIO:'Sud', YATE:'Sud',
+        BELEP:'Nord', CANALA:'Nord', HIENGHENE:'Nord', HOUAILOU:'Nord',
+        'KAALA-GOMEN':'Nord', KONE:'Nord', KOUAOUA:'Nord', KOUMAC:'Nord',
+        OUEGOA:'Nord', POINDIMIE:'Nord', PONERIHOUEN:'Nord', POUEBO:'Nord',
+        POUEMBOUT:'Nord', POUM:'Nord', POYA:'Nord', TOUHO:'Nord', VOH:'Nord',
+        LIFOU:'Îles Loyauté', MARE:'Îles Loyauté', OUVEA:'Îles Loyauté',
+      };
+
+      function fmtDuration(ms) {
+        const totalMin = Math.round(Math.abs(ms) / 60000);
+        const d = Math.floor(totalMin / 1440);
+        const h = Math.floor((totalMin % 1440) / 60);
+        const m = totalMin % 60;
+        if (d > 0) return `${d}j ${h}h`;
+        if (h > 0) return `${h}h${String(m).padStart(2,'0')}`;
+        return `${m} min`;
+      }
+
+      function buildTooltip(m, now) {
+        const debut = m.timestamp_debut ? new Date(m.timestamp_debut).getTime() : null;
+        const fin   = m.timestamp_fin   ? new Date(m.timestamp_fin).getTime()   : null;
+        const impactKey = m.impact ?? 'A_DETERMINER';
+        const accentClass = IMPACT_CLASS[impactKey] ?? 'gray';
+
+        let countdownClass, countdownText;
+        if (debut !== null && now < debut) {
+          countdownClass = 'upcoming';
+          countdownText = `⏳ dans ${fmtDuration(debut - now)}`;
+        } else if (fin !== null && now <= fin) {
+          countdownClass = 'ongoing';
+          countdownText = `⚡ se termine dans ${fmtDuration(fin - now)}`;
+        } else {
+          countdownClass = 'done';
+          countdownText = fin ? `✓ terminé il y a ${fmtDuration(now - fin)}` : '✓ Terminée';
+        }
+
+        const communes = m.communes_concernees ?? [];
+        const pop = communes.reduce((s, c) => s + (COMMUNE_POPULATION[c] ?? 0), 0);
+        const provinces = [...new Set(communes.map(c => PROVINCE_MAP[c]).filter(Boolean))];
+
+        const durMin = m.duree_coupure_min_minutes;
+        const durMax = m.duree_coupure_max_minutes;
+        const durStr = durMin && durMax
+          ? (durMin === durMax ? `${durMin} min` : `${durMin}–${durMax} min`)
+          : m.duree_fenetre_minutes ? `fenêtre ${m.duree_fenetre_minutes} min` : '—';
+
+        const rows = [
+          ['Coupure', durStr],
+          ['Population', pop > 0 ? `~${pop.toLocaleString('fr')} hab.` : '—'],
+          ['Provinces', provinces.join(', ') || '—'],
+          ['Communes', `<span class="tt-communes">${communes.join(', ')}</span>`],
+        ];
+
+        return { accentClass, html: `
+          <div class="tt-countdown ${countdownClass}">${countdownText}</div>
+          ${rows.map(([l, v]) => `<div class="tt-row"><span class="tt-label">${l}</span><span class="tt-value">${v}</span></div>`).join('')}
+        `};
+      }
+
+      // Tooltip logic
+      const tt = document.getElementById('tt');
+      let ttVisible = false;
+
+      document.querySelector('.board').addEventListener('mouseover', e => {
+        const card = e.target.closest('.card[data-id]');
+        if (!card) return;
+        const m = MAINTENANCE_MAP[card.dataset.id];
+        if (!m) return;
+        const { accentClass, html } = buildTooltip(m, Date.now());
+        tt.className = `visible accent-${accentClass}`;
+        tt.innerHTML = html;
+        ttVisible = true;
+      });
+
+      document.querySelector('.board').addEventListener('mouseleave', () => {
+        tt.classList.remove('visible');
+        ttVisible = false;
+      });
+
+      document.querySelector('.board').addEventListener('mouseout', e => {
+        if (!e.target.closest('.card[data-id]')) { tt.classList.remove('visible'); ttVisible = false; }
+      });
+
+      document.addEventListener('mousemove', e => {
+        if (!ttVisible) return;
+        const margin = 16;
+        let x = e.clientX + 18, y = e.clientY + 14;
+        const tw = tt.offsetWidth, th = tt.offsetHeight;
+        if (x + tw > window.innerWidth  - margin) x = e.clientX - tw - 10;
+        if (y + th > window.innerHeight - margin) y = e.clientY - th - 10;
+        tt.style.left = x + 'px';
+        tt.style.top  = y + 'px';
+      });
 
       function render() {
         const now = Date.now();
