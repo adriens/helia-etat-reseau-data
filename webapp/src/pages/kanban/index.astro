@@ -43,8 +43,8 @@ const IMPACT_LABEL: Record<string, string> = {
       .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
       @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
 
-      .column { background: #0d0f18; border: 1px solid #2d3148; border-radius: 14px; overflow: hidden; }
-      .col-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #2d3148; }
+      .column { background: #090b13; border: 1px solid #1e2235; border-radius: 14px; overflow: hidden; }
+      .col-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #1e2235; background: #0d1020; }
       .col-title { display: flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
       .col-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
       .col-dot.upcoming  { background: #818cf8; box-shadow: 0 0 6px #818cf888; }
@@ -57,22 +57,22 @@ const IMPACT_LABEL: Record<string, string> = {
       .col-count.ongoing   { background:#052e16; color:#4ade80; }
       .col-count.done      { background:#1e293b; color:#475569; }
 
-      .col-cards { padding: 14px; display: flex; flex-direction: column; gap: 14px; min-height: 80px; }
+      .col-cards { padding: 12px 10px; display: flex; flex-direction: column; gap: 10px; min-height: 80px; }
 
       /* Card — style ticket */
       .card {
-        background: #1e2130;
+        background: #272b3f;
         border: 1px solid #353a55;
         border-left: 4px solid #353a55;
-        border-radius: 10px;
-        padding: 14px 16px 13px;
-        box-shadow: 0 3px 10px #00000080, 0 1px 3px #0000006a;
-        transition: box-shadow .15s, transform .12s, border-color .15s;
+        border-radius: 8px;
+        padding: 12px 14px 11px;
+        box-shadow: 0 2px 6px #00000090, 0 1px 2px #00000070;
+        transition: box-shadow .15s, transform .12s;
         text-decoration: none;
         color: inherit;
         display: block;
       }
-      .card:hover { box-shadow: 0 6px 20px #000000a0, 0 2px 6px #00000070; transform: translateY(-2px); border-color: #4a5070; }
+      .card:hover { box-shadow: 0 5px 18px #000000b0, 0 2px 5px #00000080; transform: translateY(-2px); }
       .card.accent-red    { border-left-color: #f87171; }
       .card.accent-orange { border-left-color: #fb923c; }
       .card.accent-gray   { border-left-color: #475569; }
@@ -84,7 +84,7 @@ const IMPACT_LABEL: Record<string, string> = {
       .impact-badge.orange { background:#1c1008; color:#fb923c; border:1px solid #fb923c33; }
       .impact-badge.gray   { background:#1e293b; color:#94a3b8; border:1px solid #33415566; }
 
-      .card-divider { border: none; border-top: 1px solid #2d3148; margin: 10px 0; }
+      .card-divider { border: none; border-top: 1px solid #353a55; margin: 9px 0; }
 
       .card-communes { font-size:.82rem; color:#cbd5e1; margin-bottom:8px; line-height:1.5; }
       .card-communes strong { color:#f1f5f9; font-weight:600; }
