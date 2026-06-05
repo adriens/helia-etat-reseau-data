@@ -876,7 +876,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
       }
 
       // ── Tour des maintenances ─────────────────────────────────────────────
-      let tourTimeout = null, tourRunning = false, tourIndex = 0, tourActivePopup = null, tourItems = [];
+      let tourTimeout = null, tourRunning = false, tourPaused = false, tourIndex = 0, tourActivePopup = null, tourItems = [];
       const TOUR_DELAY   = 6000;
       const TOUR_FLY_MS  = 2000;
       const TOUR_BEARINGS = [-20, 20, -35, 10, 35, -10, 0, 25, -25, 15];
@@ -884,12 +884,37 @@ const COMMUNE_POPULATION: Record<string, number> = {
       function updateTourBtn() {
         const btn = document.getElementById("btn-tour");
         if (tourRunning) {
-          btn.innerHTML = `<i class="fa-solid fa-stop"></i> Tour ${tourIndex} / ${tourItems.length}`;
+          const icon = tourPaused ? 'fa-play' : 'fa-pause';
+          const label = tourPaused ? 'En pause' : `Tour ${tourIndex} / ${tourItems.length}`;
+          btn.innerHTML = `<i class="fa-solid fa-stop"></i> ${label} <i class="fa-solid ${icon}" style="margin-left:4px;opacity:.7;font-size:.8em"></i>`;
           btn.classList.add("running");
         } else {
           btn.innerHTML = `<i class="fa-solid fa-route"></i> Tour des maintenances`;
           btn.classList.remove("running");
         }
+      }
+
+      function togglePause() {
+        if (!tourRunning) return;
+        if (tourPaused) {
+          tourPaused = false;
+          tourStep();
+        } else {
+          tourPaused = true;
+          clearTimeout(tourTimeout);
+          tourTimeout = null;
+          // Geler la barre de progression
+          const activeEl = listEl.querySelector('.mi.tour-active');
+          if (activeEl) {
+            const bar = activeEl.querySelector('.tour-progress-bar');
+            if (bar) {
+              const w = getComputedStyle(bar).width;
+              bar.style.transition = 'none';
+              bar.style.width = w;
+            }
+          }
+        }
+        updateTourBtn();
       }
 
       function startTourProgressBar(id) {
