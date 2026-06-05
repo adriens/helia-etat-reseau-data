@@ -1,0 +1,243 @@
+---
+import '../../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
+
+const BASE = '/helia-etat-reseau-data';
+
+const activeDir = resolve(process.cwd(), '../data/active');
+const files = (await readdir(activeDir).catch(() => [])).filter(f => f.endsWith('.json'));
+const maintenances: any[] = await Promise.all(
+  files.map(async f => JSON.parse(await readFile(resolve(activeDir, f), 'utf-8')))
+);
+
+const IMPACT_LABEL: Record<string, string> = {
+  COUPURE_30_MIN: '⚡ ~30 min',
+  COUPURE_20_30_MIN: '⚡ 20–30 min',
+  A_DETERMINER: '❓ À déterminer',
+};
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href={`${BASE}/favicon.svg`} />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kanban — Helia NC</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      body { margin: 0; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; min-height: 100dvh; }
+      .page { max-width: 1300px; margin: 0 auto; padding: 24px 16px 60px; }
+
+      .back { display:inline-flex; align-items:center; gap:6px; color:#64748b; font-size:.82rem; text-decoration:none; border:1px solid #2d3148; padding:5px 12px; border-radius:20px; margin-bottom:24px; transition:color .15s,border-color .15s; }
+      .back:hover { color:#e5009f; border-color:#e5009f88; }
+
+      .hero { margin-bottom: 28px; }
+      .hero h1 { font-size:1.6rem; font-weight:800; color:#f8fafc; margin:0 0 6px; display:flex; align-items:center; gap:10px; }
+      .hero h1 i { color:#e5009f; }
+      .hero p { font-size:.85rem; color:#64748b; margin:0; }
+      .clock { font-size:.78rem; color:#475569; margin-top:6px; }
+
+      /* Board */
+      .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+      @media (max-width: 900px) { .board { grid-template-columns: 1fr; } }
+
+      .column { background: #13151f; border: 1px solid #2d3148; border-radius: 14px; overflow: hidden; }
+      .col-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid #2d3148; }
+      .col-title { display: flex; align-items: center; gap: 8px; font-size: .88rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+      .col-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+      .col-dot.upcoming  { background: #818cf8; box-shadow: 0 0 6px #818cf888; }
+      .col-dot.ongoing   { background: #4ade80; box-shadow: 0 0 6px #4ade8088; animation: pulse 2s infinite; }
+      .col-dot.done      { background: #475569; }
+      @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
+      .col-count { font-size:.75rem; font-weight:700; padding:3px 9px; border-radius:12px; }
+      .col-count.upcoming  { background:#1e1b4b; color:#818cf8; }
+      .col-count.ongoing   { background:#052e16; color:#4ade80; }
+      .col-count.done      { background:#1e293b; color:#475569; }
+
+      .col-cards { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 80px; }
+
+      /* Card */
+      .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 12px 14px; transition: border-color .15s, transform .1s; text-decoration: none; color: inherit; display: block; }
+      .card:hover { border-color: #e5009f88; transform: translateY(-1px); }
+
+      .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+      .card-id { font-size:.72rem; font-family: monospace; color:#818cf8; background:#1e1b4b; padding:2px 8px; border-radius:6px; flex-shrink:0; }
+      .impact-badge { font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:12px; white-space:nowrap; }
+      .impact-badge.red    { background:#2a0820; color:#f87171; border:1px solid #7f1d1d44; }
+      .impact-badge.orange { background:#1c1008; color:#fb923c; border:1px solid #7c2d1244; }
+      .impact-badge.gray   { background:#1e293b; color:#94a3b8; border:1px solid #33415544; }
+
+      .card-communes { font-size:.8rem; color:#cbd5e1; margin-bottom:6px; line-height:1.4; }
+      .card-communes strong { color:#f1f5f9; }
+      .card-more { color:#64748b; font-size:.75rem; }
+
+      .card-dates { font-size:.75rem; color:#64748b; display:flex; flex-direction:column; gap:2px; margin-bottom:8px; }
+      .card-dates span { display:flex; align-items:center; gap:5px; }
+      .card-dates i { width:12px; color:#475569; }
+
+      .card-services { display:flex; flex-wrap:wrap; gap:4px; }
+      .svc-badge { font-size:.65rem; background:#0f1117; border:1px solid #2d3148; color:#64748b; padding:2px 6px; border-radius:6px; }
+
+      .empty { text-align:center; padding:24px 12px; color:#475569; font-size:.82rem; }
+      .empty i { display:block; font-size:1.5rem; margin-bottom:6px; opacity:.4; }
+
+      .hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <a href={`${BASE}/`} class="back"><i class="fa-solid fa-arrow-left"></i> Retour à la carte</a>
+
+      <div class="hero">
+        <h1><i class="fa-solid fa-table-columns"></i> Kanban des interventions</h1>
+        <p>Vue par statut temporel — {maintenances.length} intervention{maintenances.length !== 1 ? 's' : ''} actives</p>
+        <div class="clock" id="clock"></div>
+      </div>
+
+      <div class="board">
+        <!-- À venir -->
+        <div class="column">
+          <div class="col-header">
+            <div class="col-title">
+              <span class="col-dot upcoming"></span>
+              <span style="color:#818cf8">À venir</span>
+            </div>
+            <span class="col-count upcoming" id="count-upcoming">0</span>
+          </div>
+          <div class="col-cards" id="col-upcoming">
+            <div class="empty"><i class="fa-solid fa-clock"></i>Aucune intervention à venir</div>
+          </div>
+        </div>
+
+        <!-- En cours -->
+        <div class="column">
+          <div class="col-header">
+            <div class="col-title">
+              <span class="col-dot ongoing"></span>
+              <span style="color:#4ade80">En cours</span>
+            </div>
+            <span class="col-count ongoing" id="count-ongoing">0</span>
+          </div>
+          <div class="col-cards" id="col-ongoing">
+            <div class="empty"><i class="fa-solid fa-check-circle"></i>Aucune intervention en cours</div>
+          </div>
+        </div>
+
+        <!-- Terminées -->
+        <div class="column">
+          <div class="col-header">
+            <div class="col-title">
+              <span class="col-dot done"></span>
+              <span style="color:#475569">Terminées</span>
+            </div>
+            <span class="col-count done" id="count-done">0</span>
+          </div>
+          <div class="col-cards" id="col-done">
+            <div class="empty"><i class="fa-solid fa-archive"></i>Aucune intervention terminée</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script define:vars={{ maintenances, BASE }}>
+      const NC_OFFSET_MS = 11 * 60 * 60 * 1000;
+
+      const IMPACT_LABEL = {
+        COUPURE_30_MIN: '⚡ ~30 min',
+        COUPURE_20_30_MIN: '⚡ 20–30 min',
+        A_DETERMINER: '❓ À déterminer',
+      };
+      const IMPACT_CLASS = {
+        COUPURE_30_MIN: 'red',
+        COUPURE_20_30_MIN: 'orange',
+        A_DETERMINER: 'gray',
+      };
+      const SVC_LABEL = {
+        TELEPHONIE_FIXE: 'Tél. fixe',
+        INTERNET_FIXE: 'Internet fixe',
+        TELEPHONIE_MOBILE: 'Mobile',
+        INTERNET_MOBILE: 'Internet mobile',
+        TELEVISION: 'TV',
+      };
+
+      function toNCStr(iso) {
+        const d = new Date(new Date(iso).getTime() + NC_OFFSET_MS);
+        const dd = String(d.getUTCDate()).padStart(2,'0');
+        const mm = String(d.getUTCMonth()+1).padStart(2,'0');
+        const hh = String(d.getUTCHours()).padStart(2,'0');
+        const mn = String(d.getUTCMinutes()).padStart(2,'0');
+        return `${dd}/${mm} ${hh}h${mn}`;
+      }
+
+      function buildCard(m) {
+        const communes = m.communes_concernees ?? [];
+        const shown = communes.slice(0, 3);
+        const extra = communes.length - shown.length;
+        const services = (m.services ?? []).map(s => SVC_LABEL[s] ?? s);
+        const impactKey = m.impact ?? 'A_DETERMINER';
+
+        return `
+          <a class="card" href="${BASE}/intervention/${m.id}/">
+            <div class="card-top">
+              <span class="card-id">${m.id}</span>
+              <span class="impact-badge ${IMPACT_CLASS[impactKey] ?? 'gray'}">${IMPACT_LABEL[impactKey] ?? impactKey}</span>
+            </div>
+            <div class="card-communes">
+              <strong>${shown.join(', ')}</strong>${extra > 0 ? ` <span class="card-more">+${extra} autres</span>` : ''}
+            </div>
+            <div class="card-dates">
+              <span><i class="fa-solid fa-play"></i> ${m.timestamp_debut ? toNCStr(m.timestamp_debut) : '—'}</span>
+              <span><i class="fa-solid fa-stop"></i> ${m.timestamp_fin ? toNCStr(m.timestamp_fin) : '—'}</span>
+            </div>
+            <div class="card-services">
+              ${services.map(s => `<span class="svc-badge">${s}</span>`).join('')}
+            </div>
+          </a>`;
+      }
+
+      function render() {
+        const now = Date.now();
+        const upcoming = [], ongoing = [], done = [];
+
+        for (const m of maintenances) {
+          const debut = m.timestamp_debut ? new Date(m.timestamp_debut).getTime() : null;
+          const fin   = m.timestamp_fin   ? new Date(m.timestamp_fin).getTime()   : null;
+          if (debut !== null && now < debut) upcoming.push(m);
+          else if (fin !== null && now <= fin) ongoing.push(m);
+          else done.push(m);
+        }
+
+        // Sort: upcoming by debut asc, ongoing by fin asc, done by fin desc
+        upcoming.sort((a,b) => new Date(a.timestamp_debut) - new Date(b.timestamp_debut));
+        ongoing.sort((a,b)  => new Date(a.timestamp_fin)   - new Date(b.timestamp_fin));
+        done.sort((a,b)     => new Date(b.timestamp_fin)   - new Date(a.timestamp_fin));
+
+        const fill = (colId, countId, items) => {
+          const col = document.getElementById(colId);
+          const count = document.getElementById(countId);
+          count.textContent = items.length;
+          col.innerHTML = items.length
+            ? items.map(buildCard).join('')
+            : col.querySelector('.empty')?.outerHTML ?? '';
+        };
+
+        fill('col-upcoming', 'count-upcoming', upcoming);
+        fill('col-ongoing',  'count-ongoing',  ongoing);
+        fill('col-done',     'count-done',     done);
+      }
+
+      function updateClock() {
+        const now = new Date(Date.now() + NC_OFFSET_MS);
+        const str = now.toISOString().replace('T', ' ').slice(0, 16) + ' (heure NC)';
+        document.getElementById('clock').textContent = str;
+      }
+
+      render();
+      updateClock();
+      setInterval(() => { render(); updateClock(); }, 60000);
+    </script>
+  </body>
+</html>
