@@ -72,6 +72,19 @@ Pour lancer le tableau de bord localement :
 1. Installez Rill : `curl -sSf https://rilldata.com/install.sh | sh` (si pas déjà fait)
 2. Lancez Rill : `cd rill && rill start`
 
+## Tableau de bord interactif
+
+Un tableau de bord cartographique est disponible sur GitHub Pages.
+
+### Raccourcis clavier
+
+| Touche | Action |
+|--------|--------|
+| `S` | Lancer / arrêter le tour automatique des maintenances |
+| `Espace` | Pause / reprendre le tour |
+| `F` | Basculer en plein écran (masque le menu latéral) |
+| `Echap` | Fermer le panneau de détail / arrêter le tour |
+
 ## Scraper
 
 Le scraper est disponible sur PyPI : [helia-etat-reseaux](https://pypi.org/project/helia-etat-reseaux/)

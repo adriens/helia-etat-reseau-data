@@ -44,6 +44,10 @@ const COMMUNE_POPULATION: Record<string, number> = {
   POUEMBOUT: 2752, POUM: 1435, POYA: 2802, SARRAMEA: 572,
   THIO: 2524, TOUHO: 2380, VOH: 2856, YATE: 1667,
 };
+
+const allCommunes = [...new Set(
+  maintenances.flatMap((m: any) => m.communes_concernees ?? [])
+)].sort() as string[];
 ---
 
 <html lang="fr">
@@ -126,6 +130,11 @@ const COMMUNE_POPULATION: Record<string, number> = {
       .mi-svc.toute-nc { background:#1a1535; border-color:#4c3f8a; color:#a78bfa; }
       .mi-svc.toute-nc i { color:#a78bfa; }
       .empty-state { margin: 24px 6px; padding: 24px 16px; text-align: center; color: #64748b; font-size: .82rem; border: 1px dashed #2d3148; border-radius: 8px; }
+      .shortcuts { padding: 10px 12px; border-top: 1px solid #2d3148; flex-shrink: 0; }
+      .shortcuts-title { font-size: .65rem; color: #475569; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 7px; }
+      .shortcuts-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; }
+      .shortcuts-grid kbd { font-family: system-ui,monospace; font-size: .65rem; font-weight: 700; background: #1e2235; border: 1px solid #3d4263; color: #94a3b8; padding: 1px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 0 #131723; text-align: center; }
+      .shortcuts-grid span { font-size: .68rem; color: #64748b; }
       #map { flex: 1; position: relative; touch-action: none; }
       #btn-fit, #btn-sidebar { position: absolute; left: 10px; z-index: 5; background: #1a1d27cc; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; transition: background .15s, color .15s; backdrop-filter: blur(4px); }
       #btn-fit    { top: 10px; }
@@ -238,18 +247,12 @@ const COMMUNE_POPULATION: Record<string, number> = {
     <div class="layout">
       <aside>
         <div class="filters">
+          <datalist id="communes-list">
+            {allCommunes.map(c => <option value={c} />)}
+          </datalist>
           <div>
             <label for="filter-commune">Commune</label>
-            <input id="filter-commune" type="text" placeholder="ex: NOUMEA" autocomplete="off" />
-          </div>
-          <div>
-            <label for="filter-province">Province</label>
-            <select id="filter-province">
-              <option value="">Toutes les provinces</option>
-              <option value="PROVINCE_SUD">Province Sud</option>
-              <option value="PROVINCE_NORD">Province Nord</option>
-              <option value="ILES_LOYAUTE">Îles Loyauté</option>
-            </select>
+            <input id="filter-commune" type="text" placeholder="ex: NOUMEA" list="communes-list" autocomplete="off" />
           </div>
           <div>
             <label for="filter-service">Service</label>
@@ -272,6 +275,15 @@ const COMMUNE_POPULATION: Record<string, number> = {
         </div>
         <div class="maintenance-list" id="maintenance-list">
           <div class="empty-state">Chargement…</div>
+        </div>
+        <div class="shortcuts">
+          <div class="shortcuts-title">Raccourcis clavier</div>
+          <div class="shortcuts-grid">
+            <kbd>S</kbd><span>Lancer / arrêter le tour</span>
+            <kbd>Espace</kbd><span>Pause / reprendre le tour</span>
+            <kbd>F</kbd><span>Plein écran</span>
+            <kbd>Echap</kbd><span>Fermer le détail / arrêter le tour</span>
+          </div>
         </div>
       </aside>
 
@@ -366,13 +378,11 @@ const COMMUNE_POPULATION: Record<string, number> = {
       };
 
       function applyFilters(data) {
-        const commune  = normalize(document.getElementById("filter-commune").value.trim());
-        const province = document.getElementById("filter-province").value;
-        const service  = document.getElementById("filter-service").value;
+        const commune = normalize(document.getElementById("filter-commune").value.trim());
+        const service = document.getElementById("filter-service").value;
         return data.filter(m => {
-          if (commune  && !m.communes_concernees.some(c => normalize(c).includes(commune))) return false;
-          if (province && !m.provinces_concernees.includes(province)) return false;
-          if (service  && !m.services.includes(service)) return false;
+          if (commune && !m.communes_concernees.some(c => normalize(c).includes(commune))) return false;
+          if (service && !m.services.includes(service)) return false;
           return true;
         });
       }
@@ -614,12 +624,23 @@ const COMMUNE_POPULATION: Record<string, number> = {
 
       document.getElementById("detail-close").addEventListener("click", closeDetail);
       backdropEl.addEventListener("click", closeDetail);
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") { closeDetail(); stopTour(); }
-        if (e.code === "Space" && tourRunning) {
-          e.preventDefault();
-          togglePause();
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          if (sidebarVisible) document.getElementById("btn-sidebar").click();
+        } else {
+          document.exitFullscreen().catch(() => {});
+          if (!sidebarVisible) document.getElementById("btn-sidebar").click();
         }
+      }
+
+      document.addEventListener("keydown", (e) => {
+        const tag = document.activeElement?.tagName;
+        if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+        if (e.key === "Escape") { closeDetail(); stopTour(); }
+        if (e.code === "Space" && tourRunning) { e.preventDefault(); togglePause(); }
+        if (e.key === "f" || e.key === "F") { e.preventDefault(); toggleFullscreen(); }
+        if (e.key === "s" || e.key === "S") { e.preventDefault(); if (tourRunning) stopTour(); else startTour(); }
       });
 
       // ── Three.js arc overlay ──────────────────────────────────────────────
@@ -1021,12 +1042,10 @@ const COMMUNE_POPULATION: Record<string, number> = {
 
       document.getElementById("filter-commune").addEventListener("input",   debounce(doFilter, 220));
       document.getElementById("filter-commune").addEventListener("keydown", (e) => { if (e.key === "Enter") doFilter(); });
-      document.getElementById("filter-province").addEventListener("change", doFilter);
       document.getElementById("filter-service").addEventListener("change",  doFilter);
 
       document.getElementById("btn-reset").addEventListener("click", () => {
-        document.getElementById("filter-commune").value  = "";
-        document.getElementById("filter-province").value = "";
+        document.getElementById("filter-commune").value = "";
         document.getElementById("filter-service").value  = "";
         renderList(allMaintenances, true);
         map.flyTo({ center:[165.8, -21.2], zoom:6.2, duration:600 });
