@@ -89,7 +89,8 @@ const IMPACT_LABEL: Record<string, string> = {
 
       .card-divider { border: none; border-top: 1px solid #353a55; margin: 6px 0; }
 
-      .card-communes { font-size:.8rem; color:#cbd5e1; margin-bottom:5px; line-height:1.4; }
+      .card-communes { font-size:.8rem; color:#cbd5e1; margin-bottom:5px; line-height:1.4; display:flex; align-items:baseline; gap:5px; }
+      .card-pin { font-size:.75rem; flex-shrink:0; }
       .card-communes strong { color:#f1f5f9; font-weight:600; }
       .card-more { color:#64748b; font-size:.72rem; }
 
@@ -270,7 +271,7 @@ const IMPACT_LABEL: Record<string, string> = {
             </div>
             <hr class="card-divider">
             <div class="card-communes">
-              <strong>${shown.join(', ')}</strong>${extra > 0 ? ` <span class="card-more">+${extra} autres</span>` : ''}
+              <span class="card-pin">📍</span><strong>${shown.join(', ')}</strong>${extra > 0 ? ` <span class="card-more">+${extra} autres</span>` : ''}
             </div>
             <div class="card-meta">
               <div class="card-dates">
