@@ -428,12 +428,12 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "duckdb", specifier = ">=1.5.3" },
-    { name = "helia-etat-reseaux", specifier = ">=0.6.0" },
+    { name = "helia-etat-reseaux", specifier = ">=0.6.1" },
 ]
 
 [[package]]
 name = "helia-etat-reseaux"
-version = "0.6.0"
+version = "0.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "apscheduler" },
@@ -450,9 +450,9 @@ dependencies = [
     { name = "streamlit" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/57/978cd27a2430afb2d8ed77041f4549f32af59773160c4d4d0fbcd3ab03e7/helia_etat_reseaux-0.6.0.tar.gz", hash = "sha256:fe67b3b4163edc72b098a258b59853f501e91bc2037a661d64d859a75e1ca5fe", size = 216043, upload-time = "2026-06-02T08:18:54.142Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/fb/cf6c187fc7d2552bf0bb71d5f9d364cb23b7f5306317ee3887b171373ef6/helia_etat_reseaux-0.6.1.tar.gz", hash = "sha256:66e2e20f9a301d0efd943cb173f9de027bd4dac8cb397592e6ac9c6156b5056a", size = 217633, upload-time = "2026-06-05T03:51:00.003Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/25/fe72cc68017311945ebd949a8d9a63b8a703d4a1c3dde081c52f1878113f/helia_etat_reseaux-0.6.0-py3-none-any.whl", hash = "sha256:34d0b011f82d53153863d310279752daa749861ef78e043dd5210e0285ece598", size = 19712, upload-time = "2026-06-02T08:18:55.099Z" },
+    { url = "https://files.pythonhosted.org/packages/37/29/bebdee1e796816f46a5333ad00cc38513cb8308b500e453b44ffa33c9406/helia_etat_reseaux-0.6.1-py3-none-any.whl", hash = "sha256:26300337f4c6bf5c0b858efa46540edc90c5e0ed3336658b0f1c0a0fb73e6ab6", size = 21054, upload-time = "2026-06-05T03:50:58.682Z" },
 ]
 
 [[package]]
