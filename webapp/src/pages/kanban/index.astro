@@ -61,21 +61,20 @@ const IMPACT_LABEL: Record<string, string> = {
 
       /* Card — style ticket */
       .card {
-        background: #262b42;
-        border: 1px solid #363c5c;
-        border-left: 4px solid #363c5c;
+        background: #1e2235;
+        border: 2px solid #4a5280;
         border-radius: 8px;
         padding: 12px 14px 11px;
-        box-shadow: 0 4px 12px #00000099, 0 1px 0 #ffffff0a;
-        transition: box-shadow .15s, transform .12s;
+        box-shadow: 0 4px 12px #00000099;
+        transition: box-shadow .15s, transform .12s, border-color .15s;
         text-decoration: none;
         color: inherit;
         display: block;
       }
-      .card:hover { box-shadow: 0 6px 20px #000000b0, 0 1px 0 #ffffff12; transform: translateY(-2px); }
-      .card.accent-red    { border-left-color: #f87171; }
-      .card.accent-orange { border-left-color: #fb923c; }
-      .card.accent-gray   { border-left-color: #475569; }
+      .card:hover { box-shadow: 0 6px 20px #000000c0; transform: translateY(-2px); }
+      .card.accent-red    { border-color: #f87171; }
+      .card.accent-orange { border-color: #fb923c; }
+      .card.accent-gray   { border-color: #4a5280; }
 
       .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; gap: 8px; }
       .card-id { font-size:.72rem; font-family: monospace; color:#818cf8; background:#1e1b4b; padding:2px 8px; border-radius:6px; flex-shrink:0; letter-spacing:.03em; }
