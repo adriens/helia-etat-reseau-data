@@ -133,10 +133,12 @@ const COMMUNE_POPULATION: Record<string, number> = {
       .shortcuts-grid kbd { font-family: system-ui,monospace; font-size: .65rem; font-weight: 700; background: #1e2235; border: 1px solid #3d4263; color: #94a3b8; padding: 1px 6px; border-radius: 4px; white-space: nowrap; box-shadow: 0 1px 0 #131723; text-align: center; }
       .shortcuts-grid span { font-size: .68rem; color: #64748b; }
       #map { flex: 1; position: relative; touch-action: none; }
-      #btn-fit, #btn-sidebar { position: absolute; left: 10px; z-index: 5; background: #1a1d27cc; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; transition: background .15s, color .15s; backdrop-filter: blur(4px); }
-      #btn-fit    { top: 10px; }
-      #btn-sidebar { top: 48px; }
-      #btn-fit:hover, #btn-sidebar:hover { background: #2d3148; color: #a78bfa; }
+      #btn-fit, #btn-sidebar, #btn-fullscreen { position: absolute; left: 10px; z-index: 5; background: #1a1d27cc; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: .78rem; transition: background .15s, color .15s; backdrop-filter: blur(4px); }
+      #btn-fit        { top: 10px; }
+      #btn-sidebar    { top: 48px; }
+      #btn-fullscreen { top: 86px; }
+      #btn-fit:hover, #btn-sidebar:hover, #btn-fullscreen:hover { background: #2d3148; color: #a78bfa; }
+      #btn-fullscreen.active { color: #a78bfa; border-color: #6d28d9; background: #1a1535cc; }
       #detail-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9; }
       #detail { position: absolute; bottom: 24px; right: 16px; width: 320px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; z-index: 10; display: none; max-height: 60vh; overflow-y: auto; }
       #detail.visible { display: block; }
@@ -281,6 +283,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
         <canvas id="tour-canvas" style="position:absolute;inset:0;pointer-events:none;display:none;z-index:4;"></canvas>
         <button id="btn-fit" title="Cadrer sur les résultats"><i class="fa-solid fa-expand"></i></button>
         <button id="btn-sidebar" title="Masquer/afficher le menu"><i class="fa-solid fa-chevron-left" id="sidebar-chevron"></i></button>
+        <button id="btn-fullscreen" title="Plein écran / Quitter le plein écran"><i class="fa-solid fa-maximize" id="fullscreen-icon"></i></button>
         <div id="detail-backdrop"></div>
         <div id="detail">
           <div class="drawer-handle"></div>
@@ -454,6 +457,24 @@ const COMMUNE_POPULATION: Record<string, number> = {
         }
       }
       document.getElementById("btn-fit").addEventListener("click", fitToMarkers);
+
+      // ── Plein écran ───────────────────────────────────────────────────────
+      function updateFullscreenBtn() {
+        const btn  = document.getElementById("btn-fullscreen");
+        const icon = document.getElementById("fullscreen-icon");
+        const active = !!document.fullscreenElement;
+        btn.classList.toggle("active", active);
+        icon.className = active ? "fa-solid fa-compress" : "fa-solid fa-maximize";
+        btn.title = active ? "Quitter le plein écran" : "Plein écran";
+      }
+      document.addEventListener("fullscreenchange", updateFullscreenBtn);
+      document.getElementById("btn-fullscreen").addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
 
       // ── Toggle sidebar ────────────────────────────────────────────────────
       let sidebarVisible = true;
@@ -878,7 +899,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
       }
 
       // ── Tour des maintenances ─────────────────────────────────────────────
-      let tourTimeout = null, tourRunning = false, tourPaused = false, tourIndex = 0, tourActivePopup = null, tourItems = [];
+      let tourTimeout = null, tourRunning = false, tourPaused = false, tourIndex = 0, tourActivePopup = null, tourItems = [], tourCollapsedSidebar = false;
       const TOUR_DELAY   = 6000;
       const TOUR_FLY_MS  = 2000;
       const TOUR_BEARINGS = [-20, 20, -35, 10, 35, -10, 0, 25, -25, 15];
@@ -935,8 +956,15 @@ const COMMUNE_POPULATION: Record<string, number> = {
         if (tourActivePopup) { tourActivePopup.remove(); tourActivePopup = null; }
       }
 
+      // Téléphone = écran tactile dont le petit côté < 700 px (tablettes ≥ 700 px)
+      function isPhone() {
+        return ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
+               Math.min(screen.width, screen.height) < 700;
+      }
+
       function showTourPopup(m, gp) {
         if (!tourRunning || !gp) return;
+        if (isPhone()) return;
         hideTourPopup();
         const im   = IMPACT_META[m.impact] ?? IMPACT_META.A_DETERMINER;
         const svcs = m.services.map(s => {
@@ -1007,6 +1035,22 @@ const COMMUNE_POPULATION: Record<string, number> = {
         const c = map.getCenter();
         _prevTourGp = { lon: c.lng, lat: c.lat };
         try { _initOverlay(); _showCanvas(); } catch(e) { console.warn('Tour overlay init failed:', e); }
+        // Sur mobile/tablette en paysage : réduire sidebar + plein écran automatique
+        tourCollapsedSidebar = false;
+        const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+        const isTouch     = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (isLandscape && isTouch) {
+          if (sidebarVisible) {
+            sidebarVisible = false;
+            document.querySelector("aside").classList.add("collapsed");
+            document.getElementById("sidebar-chevron").className = "fa-solid fa-chevron-right";
+            setTimeout(() => map.resize(), 260);
+            tourCollapsedSidebar = true;
+          }
+          if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }
         tourStep();
       }
 
@@ -1021,6 +1065,18 @@ const COMMUNE_POPULATION: Record<string, number> = {
         listEl.querySelectorAll(".mi.tour-active").forEach(el => el.classList.remove("tour-active"));
         map.easeTo({ pitch:0, bearing:0, duration:800 });
         updateTourBtn();
+        // Restaurer la sidebar si elle avait été auto-réduite
+        if (tourCollapsedSidebar) {
+          sidebarVisible = true;
+          document.querySelector("aside").classList.remove("collapsed");
+          document.getElementById("sidebar-chevron").className = "fa-solid fa-chevron-left";
+          setTimeout(() => map.resize(), 260);
+          tourCollapsedSidebar = false;
+        }
+        // Quitter le plein écran s'il était actif
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
       }
 
       document.getElementById("btn-tour").addEventListener("click", () => {
