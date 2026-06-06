@@ -77,6 +77,9 @@ const calEvents = all
       /* ── Grid container ── */
       #cal-grid { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2d3148 transparent; }
 
+      /* ── Tooltip ── */
+      #cal-tooltip { display:none; position:fixed; z-index:200; background:#1a1d27; border:1px solid #2d3148; border-radius:10px; padding:10px 13px; min-width:220px; max-width:300px; box-shadow:0 10px 36px rgba(0,0,0,.8); pointer-events:none; font-family:system-ui,-apple-system,sans-serif; }
+
       /* ── Event detail popup ── */
       #cal-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 50; }
       #cal-popup-backdrop.visible { display: block; }
@@ -116,6 +119,9 @@ const calEvents = all
     <!-- Calendar grid (built by JS) -->
     <div id="cal-grid"></div>
 
+    <!-- Tooltip survol -->
+    <div id="cal-tooltip"></div>
+
     <!-- Event detail popup -->
     <div id="cal-popup-backdrop"></div>
     <div id="cal-popup">
@@ -142,6 +148,66 @@ const calEvents = all
       };
 
       let viewYear, viewMonth;
+
+      // ── Tooltip ──────────────────────────────────────────────────────────────
+      const _tt = document.getElementById('cal-tooltip');
+      let _ttHide = null;
+
+      function fmtDur(startISO, endISO) {
+        const min = Math.round((new Date(endISO) - new Date(startISO)) / 60000);
+        if (min < 60)   return `${min} min`;
+        if (min < 1440) return `${Math.floor(min/60)}h${min%60 ? String(min%60).padStart(2,'0') : ''}`;
+        return `${Math.floor(min/1440)} j`;
+      }
+
+      function showTooltip(ev, anchor) {
+        clearTimeout(_ttHide);
+        const c = IMPACT[ev.impact] || DEFAULT_IMP;
+        const communes = ev.est_toute_nc ? ['Toute la Nouvelle-Calédonie'] : ev.communes;
+        const services = ev.services.map(s => SVC[s] || s.replace(/_/g,' ')).join(' · ');
+        _tt.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+            <span style="font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${c.bg};color:${c.text};border:1px solid ${c.border};white-space:nowrap">${c.label}</span>
+            <span style="font-size:.58rem;color:#374151;font-family:monospace;flex-shrink:0">#${String(ev.id).slice(0,8)}</span>
+          </div>
+          <div style="font-size:.8rem;font-weight:700;color:#f1f5f9;margin-bottom:7px;line-height:1.35">
+            ${communes.slice(0, 6).join(', ')}${communes.length > 6 ? ` <span style="color:#64748b;font-weight:400">+${communes.length-6}</span>` : ''}
+          </div>
+          <div style="font-size:.7rem;color:#64748b;margin-bottom:2px;display:flex;gap:6px;align-items:center">
+            <span style="color:#4c3f8a">▶</span> ${fmtDateTime(ev.startISO)}
+          </div>
+          <div style="font-size:.7rem;color:#64748b;margin-bottom:${services?'7px':'0'};display:flex;gap:6px;align-items:center">
+            <span style="color:#4c3f8a">■</span> ${fmtDateTime(ev.endISO)}
+            <span style="color:#2d3148;margin:0 2px">·</span>
+            <span style="color:#475569">${fmtDur(ev.startISO, ev.endISO)}</span>
+          </div>
+          ${services ? `<div style="font-size:.67rem;color:#475569;border-top:1px solid #1e2235;padding-top:6px">${services}</div>` : ''}
+        `;
+        _tt.style.display = 'block';
+        const GAP = 10, tr = anchor.getBoundingClientRect();
+        const tw = _tt.offsetWidth, th = _tt.offsetHeight;
+        let top  = tr.top - th - GAP;
+        let left = tr.left + tr.width / 2 - tw / 2;
+        if (top < 8) top = tr.bottom + GAP;
+        left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+        if (top + th > window.innerHeight - 8) top = window.innerHeight - th - 8;
+        _tt.style.top = top + 'px';
+        _tt.style.left = left + 'px';
+      }
+
+      function hideTooltip(delay = 0) {
+        clearTimeout(_ttHide);
+        if (delay) { _ttHide = setTimeout(() => { _tt.style.display = 'none'; }, delay); }
+        else _tt.style.display = 'none';
+      }
+
+      function attachHandlers(el, ev) {
+        el.addEventListener('click',       () => openPopup(ev));
+        el.addEventListener('mouseenter',  () => showTooltip(ev, el));
+        el.addEventListener('mouseleave',  () => hideTooltip(120));
+        el.addEventListener('touchstart',  () => showTooltip(ev, el), { passive: true });
+        el.addEventListener('touchend',    () => hideTooltip(1800),  { passive: true });
+      }
 
       function todayNC() {
         return new Date(Date.now() + 11 * 3600000).toISOString().slice(0, 10);
@@ -278,7 +344,7 @@ const calEvents = all
                 cursor:pointer; line-height:1.4;
               `;
               chip.textContent = lbl;
-              chip.addEventListener('click', () => openPopup(ev));
+              attachHandlers(chip, ev);
               cell.appendChild(chip);
             }
             if (dayEvts.length > 2) {
@@ -346,7 +412,7 @@ const calEvents = all
             bar.title = `${lbl} — ${e.communes.join(', ')}`;
             // Dot + label
             bar.innerHTML = `<span style="width:5px;height:5px;border-radius:50%;background:${c.border};flex-shrink:0"></span><span style="overflow:hidden;text-overflow:ellipsis">${lbl}</span>`;
-            bar.addEventListener('click', () => openPopup(e));
+            attachHandlers(bar, e);
             barsDiv.appendChild(bar);
           }
 
