@@ -317,7 +317,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
         if (e.touches.length > 1) e.preventDefault();
       }, { passive: false });
 
-      let allMaintenances = maintenances;
+      let allMaintenances = maintenances.filter(m => new Date(m.timestamp_fin).getTime() >= Date.now());
       let displayed = [], markers = [];
 
       function haversineKm(lat1, lon1, lat2, lon2) {
