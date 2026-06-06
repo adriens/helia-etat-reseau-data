@@ -660,6 +660,9 @@ const COMMUNE_POPULATION: Record<string, number> = {
             }
           }
         }
+        if (e.key === "k" || e.key === "K") { e.preventDefault(); location.href = "/helia-etat-reseau-data/kanban/"; }
+        if (e.key === "a" || e.key === "A") { e.preventDefault(); location.href = "/helia-etat-reseau-data/analytics/"; }
+        if (e.key === "c" || e.key === "C") { e.preventDefault(); location.href = "/helia-etat-reseau-data/calendar/"; }
       });
 
       // ── Three.js arc overlay ──────────────────────────────────────────────
