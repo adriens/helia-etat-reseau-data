@@ -1,0 +1,422 @@
+---
+import '../../styles/global.css';
+import { readdir, readFile } from 'fs/promises';
+import { resolve } from 'path';
+
+const BASE = '/helia-etat-reseau-data';
+const NC_OFFSET = 11 * 60; // UTC+11 en minutes
+
+const activeDir  = resolve(process.cwd(), '../data/active');
+const archiveDir = resolve(process.cwd(), '../data/archive');
+
+const activeFiles = (await readdir(activeDir).catch(() => [])).filter((f: string) => f.endsWith('.json'));
+const active: any[] = await Promise.all(
+  activeFiles.map(async (f: string) => JSON.parse(await readFile(resolve(activeDir, f), 'utf-8')))
+);
+const archiveFiles: string[] = [];
+try {
+  for (const year of await readdir(archiveDir)) {
+    for (const f of (await readdir(resolve(archiveDir, year)).catch(() => []))) {
+      if ((f as string).endsWith('.json')) archiveFiles.push(resolve(archiveDir, year, f as string));
+    }
+  }
+} catch {}
+const archived: any[] = await Promise.all(
+  archiveFiles.map(async (f: string) => JSON.parse(await readFile(f, 'utf-8')))
+);
+const all = [...active, ...archived];
+
+function toNCDateStr(iso: string): string {
+  return new Date(new Date(iso).getTime() + NC_OFFSET * 60000).toISOString().slice(0, 10);
+}
+
+const calEvents = all
+  .filter((m: any) => m.timestamp_debut && m.timestamp_fin)
+  .map((m: any) => ({
+    id:         m.id,
+    impact:     m.impact ?? 'A_DETERMINER',
+    communes:   m.communes_concernees ?? [],
+    services:   m.services ?? [],
+    est_toute_nc: m.est_toute_nc ?? false,
+    start:      toNCDateStr(m.timestamp_debut),
+    end:        toNCDateStr(m.timestamp_fin),
+    startISO:   m.timestamp_debut,
+    endISO:     m.timestamp_fin,
+  }));
+---
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href={`${BASE}/favicon.svg`} />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendrier — Helia NC</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet" />
+    <style is:global>
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: #0f1117; color: #e2e8f0; font-family: system-ui,-apple-system,sans-serif; }
+      body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+
+      /* ── Header ── */
+      .cal-topbar { flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: #13151f; border-bottom: 1px solid #2d3148; }
+      .cal-topbar h1 { font-size: .95rem; font-weight: 700; color: #a78bfa; margin: 0; white-space: nowrap; }
+      .cal-nav { display: flex; align-items: center; gap: 6px; margin-left: 8px; }
+      .cal-btn { background: #1e2235; border: 1px solid #2d3148; color: #94a3b8; border-radius: 6px; padding: 5px 12px; font-size: .8rem; cursor: pointer; transition: background .15s, color .15s; white-space: nowrap; }
+      .cal-btn:hover { background: #2d3148; color: #a78bfa; }
+      .cal-btn.today { border-color: #4c3f8a; color: #a78bfa; }
+      .cal-month-title { font-size: 1rem; font-weight: 700; color: #e2e8f0; min-width: 160px; text-align: center; }
+      .cal-topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+      .cal-back { display: inline-flex; align-items: center; gap: 5px; color: #64748b; font-size: .78rem; text-decoration: none; border: 1px solid #2d3148; padding: 4px 10px; border-radius: 20px; transition: color .15s, border-color .15s; }
+      .cal-back:hover { color: #a78bfa; border-color: #6d28d9; }
+
+      /* ── Day-of-week header ── */
+      .cal-dow { flex-shrink: 0; display: grid; grid-template-columns: repeat(7,1fr); border-bottom: 1px solid #2d3148; background: #13151f; }
+      .cal-dow-cell { padding: 7px 0; text-align: center; font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #475569; }
+      .cal-dow-cell.weekend { color: #374151; }
+
+      /* ── Grid container ── */
+      #cal-grid { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #2d3148 transparent; }
+
+      /* ── Event detail popup ── */
+      #cal-popup-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 50; }
+      #cal-popup-backdrop.visible { display: block; }
+      #cal-popup { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px; padding: 20px; z-index: 51; min-width: 300px; max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,.8); }
+      #cal-popup.visible { display: block; }
+      .popup-close { float: right; background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0; }
+    </style>
+  </head>
+  <body>
+    <!-- Top bar -->
+    <div class="cal-topbar">
+      <h1><i class="fa-regular fa-calendar" style="color:#a78bfa"></i> Calendrier Maintenances</h1>
+      <div class="cal-nav">
+        <button class="cal-btn today" id="btn-today">Aujourd'hui</button>
+        <button class="cal-btn" id="btn-prev"><i class="fa-solid fa-chevron-left"></i></button>
+        <span class="cal-month-title" id="cal-title"></span>
+        <button class="cal-btn" id="btn-next"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+      <div class="cal-topbar-right">
+        <a class="cal-back" href={`${BASE}/`}><i class="fa-solid fa-map"></i> Carte</a>
+        <a class="cal-back" href={`${BASE}/kanban/`}><i class="fa-solid fa-table-columns"></i> Kanban</a>
+        <a class="cal-back" href={`${BASE}/analytics/`}><i class="fa-solid fa-chart-column"></i> Analytics</a>
+      </div>
+    </div>
+
+    <!-- Day-of-week header -->
+    <div class="cal-dow">
+      <div class="cal-dow-cell">Lun</div>
+      <div class="cal-dow-cell">Mar</div>
+      <div class="cal-dow-cell">Mer</div>
+      <div class="cal-dow-cell">Jeu</div>
+      <div class="cal-dow-cell">Ven</div>
+      <div class="cal-dow-cell weekend">Sam</div>
+      <div class="cal-dow-cell weekend">Dim</div>
+    </div>
+
+    <!-- Calendar grid (built by JS) -->
+    <div id="cal-grid"></div>
+
+    <!-- Event detail popup -->
+    <div id="cal-popup-backdrop"></div>
+    <div id="cal-popup">
+      <button class="popup-close" id="popup-close">✕</button>
+      <div id="popup-body"></div>
+    </div>
+
+    <script define:vars={{ calEvents, BASE }}>
+      const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                      'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+      const IMPACT = {
+        COUPURE_30_MIN:    { bg:'rgba(127,29,29,.75)',  border:'#ef4444', text:'#fecaca', label:'Coupure ~30 min' },
+        COUPURE_20_30_MIN: { bg:'rgba(67,20,7,.75)',    border:'#f97316', text:'#fed7aa', label:'Coupure 20–30 min' },
+        A_DETERMINER:      { bg:'rgba(66,32,6,.75)',    border:'#eab308', text:'#fde68a', label:'À déterminer' },
+      };
+      const DEFAULT_IMP = IMPACT.A_DETERMINER;
+
+      const SVC = {
+        TELEPHONIE_FIXE:'Tél. fixe', TELEPHONIE_MOBILE:'Tél. mobile',
+        INTERNET_FIXE:'Internet fixe', INTERNET_MOBILE:'Internet mobile',
+        RESEAU_CUIVRE:'Cuivre', FIBRE_OPTIQUE:'Fibre',
+        LIAISONS_CELERIS_ETHERNET:'Céléris/Eth.',
+      };
+
+      let viewYear, viewMonth;
+
+      function todayNC() {
+        return new Date(Date.now() + 11 * 3600000).toISOString().slice(0, 10);
+      }
+      function dateStr(d) {
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+      function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+      function mondayOf(date) {
+        const d = new Date(date), dow = d.getDay();
+        d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+        return d;
+      }
+      function fmtDateTime(iso) {
+        return new Date(iso).toLocaleString('fr-NC', {
+          timeZone:'Pacific/Noumea', day:'2-digit', month:'short', year:'numeric',
+          hour:'2-digit', minute:'2-digit',
+        });
+      }
+
+      // ── Render ────────────────────────────────────────────────────────────────
+      function renderMonth(year, month) {
+        viewYear = year; viewMonth = month;
+        document.getElementById('cal-title').textContent = `${MONTHS[month]} ${year}`;
+
+        const today     = todayNC();
+        const firstDay  = new Date(year, month, 1);
+        const lastDay   = new Date(year, month + 1, 0);
+        const EH        = 22; // event row height px
+        const MAX_LANES = 3;  // max multi-day lanes before "+N more"
+
+        // Build weeks
+        const weeks = [];
+        let cur = mondayOf(firstDay);
+        while (cur <= lastDay) {
+          const week = [];
+          for (let i = 0; i < 7; i++) { week.push(new Date(cur)); cur = addDays(cur, 1); }
+          weeks.push(week);
+        }
+
+        const grid = document.getElementById('cal-grid');
+        grid.innerHTML = '';
+
+        for (const week of weeks) {
+          const ws = dateStr(week[0]);
+          const we = dateStr(week[6]);
+
+          // Events overlapping this week
+          const wEvts = calEvents.filter(e => e.end >= ws && e.start <= we);
+
+          // Clip to week bounds
+          const clipped = wEvts.map(e => ({
+            ...e,
+            cs: e.start < ws ? ws : e.start,
+            ce: e.end   > we ? we : e.end,
+          }));
+
+          const multiEvts  = clipped.filter(e => e.cs !== e.ce).sort((a,b) => a.cs.localeCompare(b.cs));
+          const singleEvts = clipped.filter(e => e.cs === e.ce);
+
+          // Lane assignment for multi-day events
+          const laneEnd = []; // end date of last event in each lane
+          for (const e of multiEvts) {
+            let placed = false;
+            for (let li = 0; li < laneEnd.length; li++) {
+              if (laneEnd[li] < e.cs) { e._lane = li; laneEnd[li] = e.ce; placed = true; break; }
+            }
+            if (!placed) { e._lane = laneEnd.length; laneEnd.push(e.ce); }
+          }
+          const numLanes = laneEnd.length;
+
+          // Single events grouped by day
+          const byDay = {};
+          for (const e of singleEvts) {
+            if (!byDay[e.cs]) byDay[e.cs] = [];
+            byDay[e.cs].push(e);
+          }
+          const maxSingle = Math.max(0, ...Object.values(byDay).map(a => Math.min(a.length, 2)));
+
+          // ── Week row ─────────────────────────────────────────────────────────
+          const weekDiv = document.createElement('div');
+          weekDiv.style.cssText = 'position:relative; border-bottom:1px solid #1e2235;';
+
+          // Day cells row
+          const rowDiv = document.createElement('div');
+          rowDiv.style.cssText = 'display:grid; grid-template-columns:repeat(7,1fr);';
+
+          for (let di = 0; di < 7; di++) {
+            const day = week[di];
+            const ds  = dateStr(day);
+            const isToday   = ds === today;
+            const isCurMon  = day.getMonth() === month;
+            const isWeekend = di >= 5;
+            const dayEvts   = byDay[ds] || [];
+
+            const cell = document.createElement('div');
+            const multiH = Math.min(numLanes, MAX_LANES) * EH;
+            const singleH = maxSingle > 0 ? maxSingle * (EH - 2) + 4 : 0;
+            cell.style.cssText = `
+              min-height:${38 + multiH + singleH}px;
+              border-right:${di < 6 ? '1px solid #1e2235' : 'none'};
+              padding:4px 2px 4px;
+              ${isWeekend ? 'background:#0d0f1a;' : ''}
+            `;
+
+            // Day number
+            const numWrap = document.createElement('div');
+            numWrap.style.cssText = `display:flex; justify-content:center; margin-bottom:${multiH + 2}px;`;
+            const numEl = document.createElement('span');
+            numEl.textContent = day.getDate();
+            numEl.style.cssText = `
+              width:28px; height:28px; border-radius:50%;
+              display:flex; align-items:center; justify-content:center;
+              font-size:.78rem; font-weight:${isToday ? 700 : 400};
+              ${isToday
+                ? 'background:#7c3aed; color:#fff; box-shadow:0 0 0 3px #7c3aed44;'
+                : isCurMon
+                  ? 'color:#e2e8f0;'
+                  : 'color:#2d3148;'}
+            `;
+            numWrap.appendChild(numEl);
+            cell.appendChild(numWrap);
+
+            // Single-day event chips
+            for (let ei = 0; ei < Math.min(dayEvts.length, 2); ei++) {
+              const ev = dayEvts[ei];
+              const c  = IMPACT[ev.impact] || DEFAULT_IMP;
+              const chip = document.createElement('div');
+              const lbl  = ev.est_toute_nc ? 'Toute NC' : ev.communes.slice(0, 2).join(', ');
+              chip.style.cssText = `
+                font-size:.63rem; padding:2px 5px; border-radius:3px; margin:1px 2px;
+                white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+                background:${c.bg}; color:${c.text}; border-left:2px solid ${c.border};
+                cursor:pointer; line-height:1.4;
+              `;
+              chip.textContent = lbl;
+              chip.addEventListener('click', () => openPopup(ev));
+              cell.appendChild(chip);
+            }
+            if (dayEvts.length > 2) {
+              const more = document.createElement('div');
+              more.style.cssText = `font-size:.6rem; color:#475569; padding:1px 6px; cursor:pointer;`;
+              more.textContent = `+${dayEvts.length - 2} de plus`;
+              more.addEventListener('click', () => openPopup(dayEvts[2]));
+              cell.appendChild(more);
+            }
+
+            rowDiv.appendChild(cell);
+          }
+          weekDiv.appendChild(rowDiv);
+
+          // ── Multi-day event bars (absolute over day number row) ───────────────
+          const barsDiv = document.createElement('div');
+          const barsH = Math.min(numLanes, MAX_LANES) * EH;
+          barsDiv.style.cssText = `position:absolute; top:36px; left:0; right:0; height:${barsH}px; pointer-events:none; z-index:2;`;
+
+          let overflowByDay = {};
+          for (const e of multiEvts) {
+            if (e._lane >= MAX_LANES) {
+              // Count overflow per day
+              const csIdx = week.findIndex(d => dateStr(d) === e.cs);
+              const ceIdx = week.findIndex(d => dateStr(d) === e.ce);
+              for (let i = (csIdx >= 0 ? csIdx : 0); i <= (ceIdx >= 0 ? ceIdx : 6); i++) {
+                const ds = dateStr(week[i]);
+                overflowByDay[ds] = (overflowByDay[ds] || 0) + 1;
+              }
+              continue;
+            }
+            const c = IMPACT[e.impact] || DEFAULT_IMP;
+            const csIdx = week.findIndex(d => dateStr(d) === e.cs);
+            const ceIdx = week.findIndex(d => dateStr(d) === e.ce);
+            const colS  = csIdx >= 0 ? csIdx : 0;
+            const colE  = ceIdx >= 0 ? ceIdx : 6;
+
+            const leftPct  = (colS / 7 * 100).toFixed(3);
+            const widthPct = ((colE - colS + 1) / 7 * 100).toFixed(3);
+
+            const bar = document.createElement('div');
+            const lbl = e.est_toute_nc ? 'Toute NC' : e.communes.slice(0, 3).join(', ');
+            const continues_left  = e.start < ws;
+            const continues_right = e.end   > we;
+            bar.style.cssText = `
+              position:absolute;
+              top:${e._lane * EH + 2}px;
+              left:calc(${leftPct}% + ${continues_left  ? 0 : 3}px);
+              width:calc(${widthPct}% - ${(continues_left ? 0 : 3) + (continues_right ? 0 : 3)}px);
+              height:${EH - 4}px;
+              background:${c.bg};
+              border-left:${continues_left  ? 'none' : `3px solid ${c.border}`};
+              border-right:${continues_right ? 'none' : 'none'};
+              border-top:1px solid ${c.border}44;
+              border-bottom:1px solid ${c.border}44;
+              border-radius:${continues_left ? '0' : '4px'} ${continues_right ? '0' : '4px'} ${continues_right ? '0' : '4px'} ${continues_left ? '0' : '4px'};
+              color:${c.text};
+              font-size:.64rem;
+              font-weight:500;
+              padding:0 6px;
+              display:flex; align-items:center; gap:4px;
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+              cursor:pointer; pointer-events:auto;
+            `;
+            bar.title = `${lbl} — ${e.communes.join(', ')}`;
+            // Dot + label
+            bar.innerHTML = `<span style="width:5px;height:5px;border-radius:50%;background:${c.border};flex-shrink:0"></span><span style="overflow:hidden;text-overflow:ellipsis">${lbl}</span>`;
+            bar.addEventListener('click', () => openPopup(e));
+            barsDiv.appendChild(bar);
+          }
+
+          // "+N more" labels per day
+          for (const [ds, count] of Object.entries(overflowByDay)) {
+            const di = week.findIndex(d => dateStr(d) === ds);
+            if (di < 0) continue;
+            const moreEl = document.createElement('div');
+            moreEl.style.cssText = `
+              position:absolute;
+              top:${MAX_LANES * EH - EH + 4}px;
+              left:calc(${(di / 7 * 100).toFixed(2)}% + 4px);
+              width:calc(${(1/7*100).toFixed(2)}% - 8px);
+              font-size:.6rem; color:#64748b; cursor:pointer;
+            `;
+            moreEl.textContent = `+${count} de plus`;
+            barsDiv.appendChild(moreEl);
+          }
+
+          weekDiv.appendChild(barsDiv);
+          grid.appendChild(weekDiv);
+        }
+      }
+
+      // ── Popup detail ─────────────────────────────────────────────────────────
+      function openPopup(ev) {
+        const c = IMPACT[ev.impact] || DEFAULT_IMP;
+        const communes = ev.est_toute_nc ? ['Toute la Nouvelle-Calédonie'] : ev.communes;
+        const services = ev.services.map(s => SVC[s] || s.replace(/_/g,' ')).join(' · ');
+        document.getElementById('popup-body').innerHTML = `
+          <div style="margin-bottom:12px">
+            <span style="font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;background:${c.bg};color:${c.text};border:1px solid ${c.border}">${c.label}</span>
+          </div>
+          <div style="font-size:.82rem;font-weight:700;color:#f1f5f9;margin-bottom:10px">${communes.join(', ')}</div>
+          <div style="font-size:.75rem;color:#94a3b8;margin-bottom:6px"><i class="fa-regular fa-calendar-days" style="color:#4c3f8a;width:14px"></i> ${fmtDateTime(ev.startISO)}</div>
+          <div style="font-size:.75rem;color:#94a3b8;margin-bottom:6px"><i class="fa-regular fa-calendar-check" style="color:#4c3f8a;width:14px"></i> ${fmtDateTime(ev.endISO)}</div>
+          ${services ? `<div style="font-size:.73rem;color:#64748b;margin-bottom:12px"><i class="fa-solid fa-network-wired" style="color:#4c3f8a;width:14px"></i> ${services}</div>` : ''}
+          <a href="${BASE}/intervention/${ev.id}" style="display:inline-flex;align-items:center;gap:6px;font-size:.75rem;background:#1e2235;border:1px solid #2d3148;color:#a78bfa;padding:5px 12px;border-radius:6px;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#2d1f69'" onmouseout="this.style.background='#1e2235'">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Voir le détail
+          </a>
+        `;
+        document.getElementById('cal-popup').classList.add('visible');
+        document.getElementById('cal-popup-backdrop').classList.add('visible');
+      }
+      document.getElementById('popup-close').addEventListener('click', closePopup);
+      document.getElementById('cal-popup-backdrop').addEventListener('click', closePopup);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closePopup(); });
+      function closePopup() {
+        document.getElementById('cal-popup').classList.remove('visible');
+        document.getElementById('cal-popup-backdrop').classList.remove('visible');
+      }
+
+      // ── Navigation ───────────────────────────────────────────────────────────
+      function prevMonth() { viewMonth === 0 ? renderMonth(viewYear-1, 11) : renderMonth(viewYear, viewMonth-1); }
+      function nextMonth() { viewMonth === 11 ? renderMonth(viewYear+1, 0) : renderMonth(viewYear, viewMonth+1); }
+      document.getElementById('btn-prev').addEventListener('click', prevMonth);
+      document.getElementById('btn-next').addEventListener('click', nextMonth);
+      document.getElementById('btn-today').addEventListener('click', () => {
+        const t = new Date(Date.now() + 11 * 3600000);
+        renderMonth(t.getFullYear(), t.getMonth());
+      });
+      document.addEventListener('keydown', e => {
+        if (e.target?.tagName === 'INPUT') return;
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); prevMonth(); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); nextMonth(); }
+      });
+
+      // ── Init ─────────────────────────────────────────────────────────────────
+      const nowNC = new Date(Date.now() + 11 * 3600000);
+      renderMonth(nowNC.getFullYear(), nowNC.getMonth());
+    </script>
+  </body>
+</html>
