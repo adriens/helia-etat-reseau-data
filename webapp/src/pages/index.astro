@@ -139,6 +139,13 @@ const COMMUNE_POPULATION: Record<string, number> = {
       #btn-fullscreen { top: 86px; }
       #btn-fit:hover, #btn-sidebar:hover, #btn-fullscreen:hover { background: #2d3148; color: #a78bfa; }
       #btn-fullscreen.active { color: #a78bfa; border-color: #6d28d9; background: #1a1535cc; }
+      #tour-playpause-flash { position: absolute; inset: 0; z-index: 20; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+      #tour-playpause-flash .ppf-ring { width: 80px; height: 80px; border-radius: 50%; background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(6px); }
+      #tour-playpause-flash .ppf-ring i { font-size: 2rem; color: #fff; }
+      @keyframes ppf-in  { 0% { opacity:0; transform:scale(.7); } 15% { opacity:1; transform:scale(1.08); } 30% { transform:scale(1); } 100% { opacity:1; transform:scale(1); } }
+      @keyframes ppf-out { 0% { opacity:1; } 100% { opacity:0; } }
+      #tour-playpause-flash.show  { animation: ppf-in  .18s ease forwards; }
+      #tour-playpause-flash.hide  { animation: ppf-out .35s ease forwards; }
       #detail-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9; }
       #detail { position: absolute; bottom: 24px; right: 16px; width: 320px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; z-index: 10; display: none; max-height: 60vh; overflow-y: auto; }
       #detail.visible { display: block; }
@@ -281,6 +288,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
 
       <div id="map">
         <canvas id="tour-canvas" style="position:absolute;inset:0;pointer-events:none;display:none;z-index:4;"></canvas>
+        <div id="tour-playpause-flash" style="display:none;"></div>
         <button id="btn-fit" title="Cadrer sur les résultats"><i class="fa-solid fa-expand"></i></button>
         <button id="btn-sidebar" title="Masquer/afficher le menu"><i class="fa-solid fa-chevron-left" id="sidebar-chevron"></i></button>
         <button id="btn-fullscreen" title="Plein écran / Quitter le plein écran"><i class="fa-solid fa-maximize" id="fullscreen-icon"></i></button>
@@ -922,13 +930,28 @@ const COMMUNE_POPULATION: Record<string, number> = {
         }
       }
 
+      let _ppfTimer = null;
+      function showPlayPauseFlash(icon) {
+        const el = document.getElementById('tour-playpause-flash');
+        el.innerHTML = `<div class="ppf-ring"><i class="fa-solid ${icon}"></i></div>`;
+        el.style.display = 'flex';
+        el.className = 'show';
+        clearTimeout(_ppfTimer);
+        _ppfTimer = setTimeout(() => {
+          el.className = 'hide';
+          setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 360);
+        }, 600);
+      }
+
       function togglePause() {
         if (!tourRunning) return;
         if (tourPaused) {
           tourPaused = false;
+          showPlayPauseFlash('fa-play');
           tourStep();
         } else {
           tourPaused = true;
+          showPlayPauseFlash('fa-pause');
           clearTimeout(tourTimeout);
           tourTimeout = null;
           // Geler la barre de progression
