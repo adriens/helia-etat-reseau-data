@@ -468,13 +468,18 @@ const COMMUNE_POPULATION: Record<string, number> = {
         btn.title = active ? "Quitter le plein écran" : "Plein écran";
       }
       document.addEventListener("fullscreenchange", updateFullscreenBtn);
-      document.getElementById("btn-fullscreen").addEventListener("click", () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        } else {
-          document.exitFullscreen().catch(() => {});
-        }
-      });
+      if (!document.documentElement.requestFullscreen) {
+        // iOS Safari ne supporte pas l'API Fullscreen — cacher le bouton
+        document.getElementById("btn-fullscreen").style.display = "none";
+      } else {
+        document.getElementById("btn-fullscreen").addEventListener("click", () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          } else {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+      }
 
       // ── Toggle sidebar ────────────────────────────────────────────────────
       let sidebarVisible = true;
@@ -956,10 +961,11 @@ const COMMUNE_POPULATION: Record<string, number> = {
         if (tourActivePopup) { tourActivePopup.remove(); tourActivePopup = null; }
       }
 
-      // Téléphone = écran tactile dont le petit côté < 700 px (tablettes ≥ 700 px)
+      // Téléphone = écran tactile avec viewport height < 520px en paysage
+      // (téléphones ~375-430px, tablettes ~768px+)
       function isPhone() {
         return ('ontouchstart' in window || navigator.maxTouchPoints > 0) &&
-               Math.min(screen.width, screen.height) < 700;
+               window.innerHeight < 520;
       }
 
       function showTourPopup(m, gp) {
