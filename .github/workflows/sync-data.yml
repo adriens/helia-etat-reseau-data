@@ -46,13 +46,8 @@ jobs:
             --base main \
             --head "$BRANCH")
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          gh pr merge "$PR_NUMBER" --squash --delete-branch --auto
-          echo "Attente du merge (max 5 min)..."
-          for i in $(seq 1 30); do
-            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
-            [ "$STATE" = "MERGED" ] && echo "PR #$PR_NUMBER mergée." && break
-            sleep 10
-          done
+          gh pr merge "$PR_NUMBER" --squash --delete-branch --admin
+          echo "PR #$PR_NUMBER mergée."
 
       - name: Bumper la version SemVer
         if: steps.sync.outputs.changed == 'true'
