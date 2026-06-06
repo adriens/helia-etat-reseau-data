@@ -1,9 +1,11 @@
 """Sync Helia maintenance data between live site and this data repository.
 
 Logic:
-  - New IDs (scraped, not in active/)  → write to active/<id>.json
-  - Gone IDs (in active/, not scraped) → move to archive/<year>/<id>.json
-  - Unchanged IDs                      → no-op (preserves first-seen scraped_at)
+  - New IDs (scraped, not in active/, not already archived) → write to active/<id>.json
+  - Gone IDs (in active/, not scraped)                      → move to archive/<year>/<id>.json
+  - Expired IDs (in active/, timestamp_fin < now)           → move to archive/<year>/<id>.json
+  - Already-archived IDs (scraped but in archive/)          → skip (ignore Helia site)
+  - Unchanged IDs                                           → no-op (preserves first-seen scraped_at)
 
 Outputs to GITHUB_OUTPUT when available:
   changed     true | false
@@ -16,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from helia_etat_reseaux.scraper import scrape_maintenances
@@ -82,18 +85,23 @@ def main() -> None:
 
     current = {m.id: m for m in scrape_maintenances()}
     existing = {f.stem: f for f in active_dir.glob("*.json")}
+    already_archived = {f.stem for f in archive_dir.rglob("*.json")}
 
     added: list[AddedInfo] = []
     archived: list[ArchivedInfo] = []
 
     for mid, m in current.items():
-        if mid not in existing:
-            (active_dir / f"{mid}.json").write_text(m.model_dump_json(indent=2))
-            added.append(AddedInfo(id=mid, communes=m.communes_concernees, timestamp_debut=m.timestamp_debut))
+        if mid in existing or mid in already_archived:
+            continue
+        (active_dir / f"{mid}.json").write_text(m.model_dump_json(indent=2))
+        added.append(AddedInfo(id=mid, communes=m.communes_concernees, timestamp_debut=m.timestamp_debut))
 
+    now = datetime.now(timezone.utc)
     for mid, fpath in existing.items():
-        if mid not in current:
-            data = json.loads(fpath.read_text())
+        data = json.loads(fpath.read_text())
+        gone = mid not in current
+        expired = datetime.fromisoformat(data["timestamp_fin"]) < now
+        if gone or expired:
             year = data["timestamp_debut"][:4]
             year_dir = archive_dir / year
             year_dir.mkdir(parents=True, exist_ok=True)
