@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from helia_etat_reseaux.scraper import scrape_maintenances
@@ -91,9 +92,12 @@ def main() -> None:
             (active_dir / f"{mid}.json").write_text(m.model_dump_json(indent=2))
             added.append(AddedInfo(id=mid, communes=m.communes_concernees, timestamp_debut=m.timestamp_debut))
 
+    now = datetime.now(timezone.utc)
     for mid, fpath in existing.items():
-        if mid not in current:
-            data = json.loads(fpath.read_text())
+        data = json.loads(fpath.read_text())
+        gone = mid not in current
+        expired = datetime.fromisoformat(data["timestamp_fin"]) < now
+        if gone or expired:
             year = data["timestamp_debut"][:4]
             year_dir = archive_dir / year
             year_dir.mkdir(parents=True, exist_ok=True)
