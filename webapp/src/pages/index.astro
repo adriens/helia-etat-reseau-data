@@ -630,7 +630,7 @@ const COMMUNE_POPULATION: Record<string, number> = {
         });
         const m = displayed.find(x => x.id === id);
         if (!m) return;
-        openDetail(m);
+        if (!fromTour) openDetail(m);
         if (!fromTour) {
           const gp = focusCommune ? m.communes_geopoints.find(g => g.commune === focusCommune) : m.communes_geopoints[0];
           if (gp) map.flyTo({ center:[gp.lon, gp.lat], zoom:9, duration:800 });
