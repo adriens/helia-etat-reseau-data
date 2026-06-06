@@ -140,12 +140,6 @@ const COMMUNE_POPULATION: Record<string, number> = {
       #btn-fit:hover, #btn-sidebar:hover, #btn-fullscreen:hover { background: #2d3148; color: #a78bfa; }
       #btn-fullscreen.active { color: #a78bfa; border-color: #6d28d9; background: #1a1535cc; }
       #tour-playpause-flash { position: fixed; inset: 0; z-index: 9999; pointer-events: none; display: flex; align-items: center; justify-content: center; }
-      #tour-playpause-flash .ppf-ring { width: 35vmin; height: 35vmin; border-radius: 50%; background: rgba(0,0,0,.65); border: 3px solid rgba(255,255,255,.35); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
-      #tour-playpause-flash .ppf-ring i { font-size: 12vmin; color: #fff; }
-      @keyframes ppf-in  { 0% { opacity:0; transform:scale(.7); } 15% { opacity:1; transform:scale(1.08); } 30% { transform:scale(1); } 100% { opacity:1; transform:scale(1); } }
-      @keyframes ppf-out { 0% { opacity:1; } 100% { opacity:0; } }
-      #tour-playpause-flash.show .ppf-ring { animation: ppf-in  .18s ease forwards; }
-      #tour-playpause-flash.hide .ppf-ring { animation: ppf-out .35s ease forwards; }
       #detail-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 9; }
       #detail { position: absolute; bottom: 24px; right: 16px; width: 320px; background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 16px; z-index: 10; display: none; max-height: 60vh; overflow-y: auto; }
       #detail.visible { display: block; }
@@ -932,15 +926,25 @@ const COMMUNE_POPULATION: Record<string, number> = {
 
       let _ppfTimer = null;
       function showPlayPauseFlash(icon) {
-        const el = document.getElementById('tour-playpause-flash');
-        el.innerHTML = `<div class="ppf-ring"><i class="fa-solid ${icon}"></i></div>`;
+        const el  = document.getElementById('tour-playpause-flash');
+        const sz  = Math.round(Math.min(window.innerWidth, window.innerHeight) * 0.38);
+        const fsz = Math.round(sz * 0.38);
+        el.innerHTML = `<div style="
+          width:${sz}px;height:${sz}px;border-radius:50%;
+          background:rgba(0,0,0,.65);border:3px solid rgba(255,255,255,.35);
+          display:flex;align-items:center;justify-content:center;
+          backdrop-filter:blur(8px);
+          transform:scale(1);transition:transform .15s,opacity .15s;
+        "><i class="fa-solid ${icon}" style="font-size:${fsz}px;color:#fff;line-height:1;"></i></div>`;
         el.style.display = 'flex';
-        el.className = 'show';
+        el.style.opacity  = '0';
+        el.style.transition = 'opacity .15s';
+        requestAnimationFrame(() => { el.style.opacity = '1'; });
         clearTimeout(_ppfTimer);
         _ppfTimer = setTimeout(() => {
-          el.className = 'hide';
-          setTimeout(() => { el.style.display = 'none'; el.className = ''; }, 360);
-        }, 600);
+          el.style.opacity = '0';
+          setTimeout(() => { el.style.display = 'none'; }, 300);
+        }, 700);
       }
 
       function togglePause() {
