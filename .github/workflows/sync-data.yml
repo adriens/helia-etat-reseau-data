@@ -32,20 +32,25 @@ jobs:
       - name: Créer la PR et merger
         if: steps.sync.outputs.changed == 'true'
         id: pr
+        env:
+          PR_TITLE: ${{ steps.sync.outputs.pr_title }}
+          PR_BODY: ${{ steps.sync.outputs.pr_body }}
         run: |
           BRANCH="sync/$(date +%Y%m%dT%H%M%S)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add -A
-          git commit -m "${{ steps.sync.outputs.pr_title }}"
+          git commit -m "$PR_TITLE"
           git push origin "$BRANCH"
+          printf '%s' "$PR_BODY" > /tmp/pr_body.md
           PR_URL=$(gh pr create \
-            --title "${{ steps.sync.outputs.pr_title }}" \
-            --body "${{ steps.sync.outputs.pr_body }}" \
+            --title "$PR_TITLE" \
+            --body-file /tmp/pr_body.md \
             --base main \
             --head "$BRANCH")
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          gh pr checks "$PR_NUMBER" --watch --fail-fast
           gh pr merge "$PR_NUMBER" --squash --delete-branch --admin
           echo "PR #$PR_NUMBER mergée."
 
