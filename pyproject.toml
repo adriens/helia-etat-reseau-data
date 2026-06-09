@@ -4,5 +4,5 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "duckdb>=1.5.3",
-    "helia-etat-reseaux>=0.6.2",
+    "helia-etat-reseaux>=0.6.3",
 ]

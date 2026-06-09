@@ -50,8 +50,15 @@ jobs:
             --base main \
             --head "$BRANCH")
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          gh pr checks "$PR_NUMBER" --watch --fail-fast
-          gh pr merge "$PR_NUMBER" --squash --delete-branch --admin
+          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
+          # Attendre que l'auto-merge soit effectif (max ~10 min)
+          for i in $(seq 1 60); do
+            STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+            [[ "$STATE" == "MERGED" ]] && break
+            sleep 10
+          done
+          STATE=$(gh pr view "$PR_NUMBER" --json state --jq '.state')
+          [[ "$STATE" == "MERGED" ]] || { echo "##[error]PR #$PR_NUMBER non mergée après timeout"; exit 1; }
           echo "PR #$PR_NUMBER mergée."
 
       - name: Bumper la version SemVer
