@@ -5,11 +5,27 @@ import { resolve } from 'path';
 
 const BASE = '/helia-etat-reseau-data';
 
+const buildDate = new Date();
+const currentYear = buildDate.getFullYear();
+const currentMonth = buildDate.getMonth() + 1;
+
 const activeDir = resolve(process.cwd(), '../data/active');
 const files = (await readdir(activeDir).catch(() => [])).filter(f => f.endsWith('.json'));
-const maintenances: any[] = await Promise.all(
+const activeMaintenances: any[] = await Promise.all(
   files.map(async f => JSON.parse(await readFile(resolve(activeDir, f), 'utf-8')))
 );
+
+const archiveDir = resolve(process.cwd(), `../data/archive/${currentYear}`);
+const archiveFiles = (await readdir(archiveDir).catch(() => [])).filter(f => f.endsWith('.json'));
+const archivedThisMonth: any[] = (await Promise.all(
+  archiveFiles.map(async f => JSON.parse(await readFile(resolve(archiveDir, f), 'utf-8')))
+)).filter(m => {
+  if (!m.timestamp_fin) return false;
+  const fin = new Date(m.timestamp_fin);
+  return fin.getFullYear() === currentYear && fin.getMonth() + 1 === currentMonth;
+});
+
+const maintenances: any[] = [...activeMaintenances, ...archivedThisMonth];
 
 const IMPACT_LABEL: Record<string, string> = {
   COUPURE_30_MIN: '⚡ ~30 min',
