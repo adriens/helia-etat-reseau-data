@@ -50,7 +50,7 @@ jobs:
             --base main \
             --head "$BRANCH")
           PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
+          gh pr merge "$PR_NUMBER" --admin --squash --delete-branch
           echo "PR #$PR_NUMBER mergée."
 
       - name: Bumper la version SemVer
