@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
   push:
     branches: [main]
@@ -14,6 +14,8 @@ jobs:
       TZ: Pacific/Noumea
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: oven-sh/setup-bun@v2
         with:
