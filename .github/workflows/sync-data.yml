@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write  # pour déclencher deploy-pages.yml via workflow_dispatch
 
 jobs:
   sync:
@@ -79,6 +80,15 @@ jobs:
           git tag "$NEW_TAG" "$MERGE_SHA" -m "$PR_TITLE"
           git push origin "$NEW_TAG"
           echo "Tag $NEW_TAG créé sur $MERGE_SHA"
+
+      - name: Déclencher le redéploiement du site
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          # Le tag est poussé via GITHUB_TOKEN : la règle anti-récursion
+          # empêche le trigger « on: push: tags » de deploy-pages.yml.
+          # workflow_dispatch est l'exception → on déclenche explicitement.
+          gh workflow run deploy-pages.yml --ref main
+          echo "Déploiement du site déclenché."
 
       - name: Aucun changement
         if: steps.sync.outputs.changed == 'false'
