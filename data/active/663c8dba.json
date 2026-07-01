@@ -1,0 +1,44 @@
+{
+  "id": "663c8dba",
+  "scraped_at": "2026-07-01T12:01:18Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-07-09T09:00:00+11:00",
+  "timestamp_fin": "2026-07-09T14:30:00+11:00",
+  "duree_fenetre_minutes": 330,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "KONE",
+    "TOUHO"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE",
+    "INTERNET_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 2,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-07-01T23:01:18+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408,
+      "population": 8144
+    },
+    {
+      "commune": "TOUHO",
+      "lat": -20.817968,
+      "lon": 165.157733,
+      "population": 2380
+    }
+  ],
+  "centroide": {
+    "lat": -20.922114999999998,
+    "lon": 165.0320705
+  }
+}
