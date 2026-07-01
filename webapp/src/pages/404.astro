@@ -228,6 +228,7 @@ try {
     </div>
 
     <script define:vars={{ BASE, ARCHIVE_MAP }}>
+      (function () {
       const path = window.location.pathname;
 
       // ── Commune redirect (case/accent insensitive) ──────────────────────────
@@ -308,6 +309,7 @@ try {
 
       // ── Default generic 404 ─────────────────────────────────────────────────
       document.getElementById('view-generic').style.display = 'block';
+      })();
     </script>
   </body>
 </html>
