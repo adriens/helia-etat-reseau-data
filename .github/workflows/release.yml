@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Installer DuckDB
-        uses: opt-nc/setup-duckdb-action@v1.2.9
+        uses: opt-nc/setup-duckdb-action@v1.2.10
 
       - name: Exporter les données actives (DuckDB + Parquet)
         run: |
