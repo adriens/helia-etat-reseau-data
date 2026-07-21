@@ -1,0 +1,43 @@
+{
+  "id": "9b84605c",
+  "scraped_at": "2026-07-21T20:03:14Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-07-28T09:30:00+11:00",
+  "timestamp_fin": "2026-07-28T13:30:00+11:00",
+  "duree_fenetre_minutes": 240,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "MONT-DORE",
+    "YATE"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 2,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-07-22T07:03:14+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493,
+      "population": 27620
+    },
+    {
+      "commune": "YATE",
+      "lat": -22.083508,
+      "lon": 166.724866,
+      "population": 1667
+    }
+  ],
+  "centroide": {
+    "lat": -22.1795865,
+    "lon": 166.7266795
+  }
+}
