@@ -1,0 +1,36 @@
+{
+  "id": "16208d40",
+  "scraped_at": "2026-08-18T21:20:15Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-08-17T07:30:00+11:00",
+  "timestamp_fin": "2026-08-19T16:00:00+11:00",
+  "duree_fenetre_minutes": 3390,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "MONT-DORE"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-08-19T08:20:15+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493,
+      "population": 27620
+    }
+  ],
+  "centroide": {
+    "lat": -22.275665,
+    "lon": 166.728493
+  }
+}
