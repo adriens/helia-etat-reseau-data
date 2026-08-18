@@ -1,0 +1,36 @@
+{
+  "id": "1599474c",
+  "scraped_at": "2026-08-18T02:52:40Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-08-20T08:30:00+11:00",
+  "timestamp_fin": "2026-08-20T14:00:00+11:00",
+  "duree_fenetre_minutes": 330,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "DUMBEA"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-08-18T13:52:40+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "DUMBEA",
+      "lat": -22.126546,
+      "lon": 166.493736,
+      "population": 35873
+    }
+  ],
+  "centroide": {
+    "lat": -22.126546,
+    "lon": 166.493736
+  }
+}
