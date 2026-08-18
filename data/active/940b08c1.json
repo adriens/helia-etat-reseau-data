@@ -1,0 +1,47 @@
+{
+  "id": "940b08c1",
+  "scraped_at": "2026-08-18T02:52:40Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-09-01T04:00:00+11:00",
+  "timestamp_fin": "2026-09-01T06:00:00+11:00",
+  "duree_fenetre_minutes": 120,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "NOUMEA",
+    "DUMBEA"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
+    "RESEAU_CUIVRE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 2,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": [
+    "Butte de Koutio"
+  ],
+  "scraped_at_local": "2026-08-18T13:52:40+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "NOUMEA",
+      "lat": -22.2578,
+      "lon": 166.45009,
+      "population": 94285
+    },
+    {
+      "commune": "DUMBEA",
+      "lat": -22.126546,
+      "lon": 166.493736,
+      "population": 35873
+    }
+  ],
+  "centroide": {
+    "lat": -22.192173,
+    "lon": 166.471913
+  }
+}
