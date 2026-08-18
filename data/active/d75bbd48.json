@@ -1,0 +1,36 @@
+{
+  "id": "d75bbd48",
+  "scraped_at": "2026-08-18T21:20:15Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-08-19T08:30:00+11:00",
+  "timestamp_fin": "2026-08-19T11:30:00+11:00",
+  "duree_fenetre_minutes": 180,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "FARINO"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-08-19T08:20:15+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "FARINO",
+      "lat": -21.648246,
+      "lon": 165.759219,
+      "population": 712
+    }
+  ],
+  "centroide": {
+    "lat": -21.648246,
+    "lon": 165.759219
+  }
+}
