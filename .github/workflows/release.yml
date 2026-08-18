@@ -1,9 +1,26 @@
 name: Release Data
 
 on:
+  # Tag poussé à la main : la ref déclenchante EST le tag à publier.
   push:
     tags:
       - 'v*'
+  # Tags créés par sync-data.yml / tag-on-sdk-bump.yml : poussés avec le
+  # GITHUB_TOKEN, ils ne déclenchent aucun workflow (anti-récursion), d'où
+  # l'appel explicite avec le tag en entrée.
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag à publier (ex. v9.0.0)
+        required: true
+        type: string
+  # Rattrapage manuel d'un tag dont la release n'a jamais été produite.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag à publier (ex. v9.0.0)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,10 +31,13 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      # `inputs` est nul sur `push` : on retombe alors sur la ref du tag.
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Installer DuckDB
         uses: opt-nc/setup-duckdb-action@v1.2.11
@@ -65,7 +85,7 @@ jobs:
                   shown.append(f"_+{rest} autres_")
               return ", ".join(shown)
 
-          cur_tag  = os.environ["GITHUB_REF_NAME"]
+          cur_tag  = os.environ["RELEASE_TAG"]
           tags_raw = subprocess.check_output(
               ["git", "tag", "-l", "v[0-9]*.[0-9]*.[0-9]*"], text=True
           ).strip()
@@ -169,6 +189,9 @@ jobs:
       - name: Créer la release GitHub avec assets
         uses: softprops/action-gh-release@v3
         with:
+          # Obligatoire hors `push` : sans ça l'action déduit le tag de la ref,
+          # qui vaut `main` quand le workflow est appelé ou dispatché.
+          tag_name: ${{ inputs.tag || github.ref_name }}
           body: ${{ steps.notes.outputs.body }}
           files: |
             interventions.duckdb
