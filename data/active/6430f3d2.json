@@ -1,0 +1,37 @@
+{
+  "id": "6430f3d2",
+  "scraped_at": "2026-08-20T02:53:38Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-09-08T22:00:00+11:00",
+  "timestamp_fin": "2026-09-09T01:00:00+11:00",
+  "duree_fenetre_minutes": 180,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "KONE"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-08-20T13:53:38+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408,
+      "population": 8144
+    }
+  ],
+  "centroide": {
+    "lat": -21.026262,
+    "lon": 164.906408
+  }
+}
