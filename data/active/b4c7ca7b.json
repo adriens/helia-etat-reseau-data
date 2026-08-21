@@ -1,0 +1,73 @@
+{
+  "id": "b4c7ca7b",
+  "scraped_at": "2026-08-21T08:30:17Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-09-02T04:00:00+11:00",
+  "timestamp_fin": "2026-09-02T07:00:00+11:00",
+  "duree_fenetre_minutes": 180,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "POUM",
+    "HIENGHENE",
+    "KOUMAC",
+    "POUEBO",
+    "BELEP",
+    "TOUHO"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 6,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-08-21T19:30:17+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "POUM",
+      "lat": -20.262885,
+      "lon": 164.147684,
+      "population": 1435
+    },
+    {
+      "commune": "HIENGHENE",
+      "lat": -20.716141,
+      "lon": 164.845422,
+      "population": 2454
+    },
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171,
+      "population": 3981
+    },
+    {
+      "commune": "POUEBO",
+      "lat": -20.414186,
+      "lon": 164.597588,
+      "population": 2144
+    },
+    {
+      "commune": "BELEP",
+      "lat": -19.693145,
+      "lon": 163.650235,
+      "population": 867
+    },
+    {
+      "commune": "TOUHO",
+      "lat": -20.817968,
+      "lon": 165.157733,
+      "population": 2380
+    }
+  ],
+  "centroide": {
+    "lat": -20.40127216666667,
+    "lon": 164.45447216666668
+  }
+}
