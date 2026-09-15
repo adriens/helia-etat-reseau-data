@@ -1,0 +1,38 @@
+{
+  "id": "ba764d83",
+  "scraped_at": "2026-09-15T20:41:45Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-09-15T12:00:00+11:00",
+  "timestamp_fin": "2026-09-15T14:00:00+11:00",
+  "duree_fenetre_minutes": 120,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "THIO"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
+    "RESEAU_CUIVRE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-09-16T07:41:45+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "THIO",
+      "lat": -21.724381,
+      "lon": 166.25652,
+      "population": 2524
+    }
+  ],
+  "centroide": {
+    "lat": -21.724381,
+    "lon": 166.25652
+  }
+}
