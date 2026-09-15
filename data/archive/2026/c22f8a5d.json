@@ -1,0 +1,56 @@
+{
+  "id": "c22f8a5d",
+  "scraped_at": "2026-09-15T00:15:12Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-09-16T00:00:00+11:00",
+  "timestamp_fin": "2026-09-16T04:00:00+11:00",
+  "duree_fenetre_minutes": 240,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "POYA",
+    "BOURAIL"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 2,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD",
+    "PROVINCE_SUD"
+  ],
+  "zones_non_reconnues": [
+    "Beaupré",
+    "Cap",
+    "Netea",
+    "Nepou 2",
+    "Col des Citrons",
+    "Kradji",
+    "Poo",
+    "Gohapin",
+    "Nekiai"
+  ],
+  "scraped_at_local": "2026-09-15T11:15:12+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "POYA",
+      "lat": -21.330607,
+      "lon": 165.21035,
+      "population": 2802
+    },
+    {
+      "commune": "BOURAIL",
+      "lat": -21.534368,
+      "lon": 165.461729,
+      "population": 5531
+    }
+  ],
+  "centroide": {
+    "lat": -21.4324875,
+    "lon": 165.3360395
+  }
+}

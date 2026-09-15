@@ -1,0 +1,263 @@
+{
+  "id": "d4fbe0d3",
+  "scraped_at": "2026-08-31T22:24:54Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-09-08T03:00:00+11:00",
+  "timestamp_fin": "2026-09-08T03:30:00+11:00",
+  "duree_fenetre_minutes": 30,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "BELEP",
+    "BOULOUPARIS",
+    "BOURAIL",
+    "CANALA",
+    "DUMBEA",
+    "FARINO",
+    "HIENGHENE",
+    "HOUAILOU",
+    "ILE DES PINS",
+    "KAALA-GOMEN",
+    "KONE",
+    "KOUAOUA",
+    "KOUMAC",
+    "LA FOA",
+    "LIFOU",
+    "MARE",
+    "MOINDOU",
+    "MONT-DORE",
+    "NOUMEA",
+    "OUEGOA",
+    "OUVEA",
+    "PAITA",
+    "POINDIMIE",
+    "PONERIHOUEN",
+    "POUEBO",
+    "POUEMBOUT",
+    "POUM",
+    "POYA",
+    "SARRAMEA",
+    "THIO",
+    "TOUHO",
+    "VOH",
+    "YATE"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE",
+    "INTERNET_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 33,
+  "est_toute_nc": true,
+  "provinces_concernees": [
+    "PROVINCE_NORD",
+    "PROVINCE_SUD",
+    "ILES_LOYAUTE"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-09-01T09:24:54+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "BELEP",
+      "lat": -19.693145,
+      "lon": 163.650235,
+      "population": 867
+    },
+    {
+      "commune": "BOULOUPARIS",
+      "lat": -21.859259,
+      "lon": 166.111898,
+      "population": 3315
+    },
+    {
+      "commune": "BOURAIL",
+      "lat": -21.534368,
+      "lon": 165.461729,
+      "population": 5531
+    },
+    {
+      "commune": "CANALA",
+      "lat": -21.531276,
+      "lon": 165.968968,
+      "population": 3701
+    },
+    {
+      "commune": "DUMBEA",
+      "lat": -22.126546,
+      "lon": 166.493736,
+      "population": 35873
+    },
+    {
+      "commune": "FARINO",
+      "lat": -21.648246,
+      "lon": 165.759219,
+      "population": 712
+    },
+    {
+      "commune": "HIENGHENE",
+      "lat": -20.716141,
+      "lon": 164.845422,
+      "population": 2454
+    },
+    {
+      "commune": "HOUAILOU",
+      "lat": -21.330198,
+      "lon": 165.549981,
+      "population": 3955
+    },
+    {
+      "commune": "ILE DES PINS",
+      "lat": -22.612532,
+      "lon": 167.479871,
+      "population": 2037
+    },
+    {
+      "commune": "KAALA-GOMEN",
+      "lat": -20.700238,
+      "lon": 164.51314,
+      "population": 1803
+    },
+    {
+      "commune": "KONE",
+      "lat": -21.026262,
+      "lon": 164.906408,
+      "population": 8144
+    },
+    {
+      "commune": "KOUAOUA",
+      "lat": -21.458301,
+      "lon": 165.782577,
+      "population": 1304
+    },
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171,
+      "population": 3981
+    },
+    {
+      "commune": "LA FOA",
+      "lat": -21.722727,
+      "lon": 165.880453,
+      "population": 3552
+    },
+    {
+      "commune": "LIFOU",
+      "lat": -20.944989,
+      "lon": 167.238656,
+      "population": 9195
+    },
+    {
+      "commune": "MARE",
+      "lat": -21.514954,
+      "lon": 167.970418,
+      "population": 5757
+    },
+    {
+      "commune": "MOINDOU",
+      "lat": -21.625926,
+      "lon": 165.674933,
+      "population": 681
+    },
+    {
+      "commune": "MONT-DORE",
+      "lat": -22.275665,
+      "lon": 166.728493,
+      "population": 27620
+    },
+    {
+      "commune": "NOUMEA",
+      "lat": -22.2578,
+      "lon": 166.45009,
+      "population": 94285
+    },
+    {
+      "commune": "OUEGOA",
+      "lat": -20.408064,
+      "lon": 164.465065,
+      "population": 2118
+    },
+    {
+      "commune": "OUVEA",
+      "lat": -20.563597,
+      "lon": 166.562699,
+      "population": 3401
+    },
+    {
+      "commune": "PAITA",
+      "lat": -22.040971,
+      "lon": 166.316636,
+      "population": 24563
+    },
+    {
+      "commune": "POINDIMIE",
+      "lat": -20.948387,
+      "lon": 165.175839,
+      "population": 5006
+    },
+    {
+      "commune": "PONERIHOUEN",
+      "lat": -21.131155,
+      "lon": 165.315489,
+      "population": 2420
+    },
+    {
+      "commune": "POUEBO",
+      "lat": -20.414186,
+      "lon": 164.597588,
+      "population": 2144
+    },
+    {
+      "commune": "POUEMBOUT",
+      "lat": -21.167138,
+      "lon": 165.000992,
+      "population": 2752
+    },
+    {
+      "commune": "POUM",
+      "lat": -20.262885,
+      "lon": 164.147684,
+      "population": 1435
+    },
+    {
+      "commune": "POYA",
+      "lat": -21.330607,
+      "lon": 165.21035,
+      "population": 2802
+    },
+    {
+      "commune": "SARRAMEA",
+      "lat": -21.62234,
+      "lon": 165.818967,
+      "population": 572
+    },
+    {
+      "commune": "THIO",
+      "lat": -21.724381,
+      "lon": 166.25652,
+      "population": 2524
+    },
+    {
+      "commune": "TOUHO",
+      "lat": -20.817968,
+      "lon": 165.157733,
+      "population": 2380
+    },
+    {
+      "commune": "VOH",
+      "lat": -20.868914,
+      "lon": 164.734178,
+      "population": 2856
+    },
+    {
+      "commune": "YATE",
+      "lat": -22.083508,
+      "lon": 166.724866,
+      "population": 1667
+    }
+  ],
+  "centroide": {
+    "lat": -21.28684793939394,
+    "lon": 165.6448183030303
+  }
+}
