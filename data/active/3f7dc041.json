@@ -1,0 +1,40 @@
+{
+  "id": "3f7dc041",
+  "scraped_at": "2026-09-29T04:09:11Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-10-20T08:00:00+11:00",
+  "timestamp_fin": "2026-10-20T13:00:00+11:00",
+  "duree_fenetre_minutes": 300,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "OUVEA"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
+    "TELEPHONIE_MOBILE",
+    "INTERNET_MOBILE",
+    "RESEAU_CUIVRE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "ILES_LOYAUTE"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-09-29T15:09:11+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "OUVEA",
+      "lat": -20.563597,
+      "lon": 166.562699,
+      "population": 3401
+    }
+  ],
+  "centroide": {
+    "lat": -20.563597,
+    "lon": 166.562699
+  }
+}
