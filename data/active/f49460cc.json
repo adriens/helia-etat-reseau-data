@@ -1,0 +1,36 @@
+{
+  "id": "f49460cc",
+  "scraped_at": "2026-10-06T22:18:02Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-10-05T07:30:00+11:00",
+  "timestamp_fin": "2026-10-09T16:00:00+11:00",
+  "duree_fenetre_minutes": 6270,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "HOUAILOU"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-10-07T09:18:02+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "HOUAILOU",
+      "lat": -21.330198,
+      "lon": 165.549981,
+      "population": 3955
+    }
+  ],
+  "centroide": {
+    "lat": -21.330198,
+    "lon": 165.549981
+  }
+}
