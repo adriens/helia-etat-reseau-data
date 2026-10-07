@@ -1,0 +1,70 @@
+{
+  "id": "9a824b99",
+  "scraped_at": "2026-10-07T02:03:38Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-11-03T23:00:00+11:00",
+  "timestamp_fin": "2026-11-04T02:00:00+11:00",
+  "duree_fenetre_minutes": 180,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "BOURAIL",
+    "POYA",
+    "CANALA",
+    "HOUAILOU",
+    "PONERIHOUEN"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "FIBRE_OPTIQUE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 5,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_SUD",
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": [
+    "Moindou",
+    "Néoupi",
+    "Kouaoua"
+  ],
+  "scraped_at_local": "2026-10-07T13:03:38+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "BOURAIL",
+      "lat": -21.534368,
+      "lon": 165.461729,
+      "population": 5531
+    },
+    {
+      "commune": "POYA",
+      "lat": -21.330607,
+      "lon": 165.21035,
+      "population": 2802
+    },
+    {
+      "commune": "CANALA",
+      "lat": -21.531276,
+      "lon": 165.968968,
+      "population": 3701
+    },
+    {
+      "commune": "HOUAILOU",
+      "lat": -21.330198,
+      "lon": 165.549981,
+      "population": 3955
+    },
+    {
+      "commune": "PONERIHOUEN",
+      "lat": -21.131155,
+      "lon": 165.315489,
+      "population": 2420
+    }
+  ],
+  "centroide": {
+    "lat": -21.3715208,
+    "lon": 165.5013034
+  }
+}

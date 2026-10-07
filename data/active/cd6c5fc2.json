@@ -1,0 +1,74 @@
+{
+  "id": "cd6c5fc2",
+  "scraped_at": "2026-10-07T02:03:38Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-10-28T23:00:00+11:00",
+  "timestamp_fin": "2026-10-29T02:00:00+11:00",
+  "duree_fenetre_minutes": 180,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "VOH",
+    "POUEMBOUT",
+    "KOUMAC",
+    "KAALA-GOMEN",
+    "POUM",
+    "PONERIHOUEN"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "FIBRE_OPTIQUE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 6,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": [
+    "Kouma"
+  ],
+  "scraped_at_local": "2026-10-07T13:03:38+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "VOH",
+      "lat": -20.868914,
+      "lon": 164.734178,
+      "population": 2856
+    },
+    {
+      "commune": "POUEMBOUT",
+      "lat": -21.167138,
+      "lon": 165.000992,
+      "population": 2752
+    },
+    {
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171,
+      "population": 3981
+    },
+    {
+      "commune": "KAALA-GOMEN",
+      "lat": -20.700238,
+      "lon": 164.51314,
+      "population": 1803
+    },
+    {
+      "commune": "POUM",
+      "lat": -20.262885,
+      "lon": 164.147684,
+      "population": 1435
+    },
+    {
+      "commune": "PONERIHOUEN",
+      "lat": -21.131155,
+      "lon": 165.315489,
+      "population": 2420
+    }
+  ],
+  "centroide": {
+    "lat": -20.772273000000002,
+    "lon": 164.67327566666668
+  }
+}
