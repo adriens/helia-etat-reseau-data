@@ -1,14 +1,14 @@
 {
-  "id": "3f7dc041",
-  "scraped_at": "2026-09-29T04:09:11Z",
+  "id": "a95e4f3b",
+  "scraped_at": "2026-10-08T20:37:05Z",
   "source_url": "https://helia.nc/etat-du-reseau",
-  "timestamp_debut": "2026-10-20T08:00:00+11:00",
-  "timestamp_fin": "2026-10-20T13:00:00+11:00",
-  "duree_fenetre_minutes": 300,
+  "timestamp_debut": "2026-10-21T11:00:00+11:00",
+  "timestamp_fin": "2026-10-21T13:00:00+11:00",
+  "duree_fenetre_minutes": 120,
   "duree_coupure_min_minutes": null,
   "duree_coupure_max_minutes": null,
   "communes_concernees": [
-    "OUVEA"
+    "KOUMAC"
   ],
   "services": [
     "TELEPHONIE_FIXE",
@@ -21,20 +21,20 @@
   "nb_communes_concernees": 1,
   "est_toute_nc": false,
   "provinces_concernees": [
-    "ILES_LOYAUTE"
+    "PROVINCE_NORD"
   ],
   "zones_non_reconnues": null,
-  "scraped_at_local": "2026-09-29T15:09:11+11:00",
+  "scraped_at_local": "2026-10-09T07:37:05+11:00",
   "communes_geopoints": [
     {
-      "commune": "OUVEA",
-      "lat": -20.563597,
-      "lon": 166.562699,
-      "population": 3401
+      "commune": "KOUMAC",
+      "lat": -20.503308,
+      "lon": 164.328171,
+      "population": 3981
     }
   ],
   "centroide": {
-    "lat": -20.563597,
-    "lon": 166.562699
+    "lat": -20.503308,
+    "lon": 164.328171
   }
 }

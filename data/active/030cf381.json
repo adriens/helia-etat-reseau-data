@@ -1,6 +1,6 @@
 {
-  "id": "75eef0fa",
-  "scraped_at": "2026-10-08T20:27:14Z",
+  "id": "030cf381",
+  "scraped_at": "2026-10-08T20:37:05Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-10-07T23:00:00+11:00",
   "timestamp_fin": "2026-10-08T06:00:00+11:00",
@@ -43,8 +43,7 @@
     "YATE"
   ],
   "services": [
-    "TELEPHONIE_FIXE",
-    "TELEPHONIE_MOBILE",
+    "INTERNET_FIXE",
     "INTERNET_MOBILE"
   ],
   "impact": "A_DETERMINER",
@@ -56,7 +55,7 @@
     "ILES_LOYAUTE"
   ],
   "zones_non_reconnues": null,
-  "scraped_at_local": "2026-10-09T07:27:14+11:00",
+  "scraped_at_local": "2026-10-09T07:37:05+11:00",
   "communes_geopoints": [
     {
       "commune": "BELEP",
