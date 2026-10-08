@@ -1,53 +1,37 @@
 {
-  "id": "20f6dd98",
+  "id": "f41de9f1",
   "scraped_at": "2026-10-08T20:27:14Z",
   "source_url": "https://helia.nc/etat-du-reseau",
-  "timestamp_debut": "2026-10-27T23:00:00+11:00",
-  "timestamp_fin": "2026-10-28T02:00:00+11:00",
+  "timestamp_debut": "2026-10-29T23:00:00+11:00",
+  "timestamp_fin": "2026-10-30T02:00:00+11:00",
   "duree_fenetre_minutes": 180,
   "duree_coupure_min_minutes": null,
   "duree_coupure_max_minutes": null,
   "communes_concernees": [
-    "LIFOU",
-    "NOUMEA",
-    "KONE"
+    "NOUMEA"
   ],
   "services": [
     "TELEPHONIE_FIXE",
     "FIBRE_OPTIQUE"
   ],
   "impact": "A_DETERMINER",
-  "nb_communes_concernees": 3,
+  "nb_communes_concernees": 1,
   "est_toute_nc": false,
   "provinces_concernees": [
-    "ILES_LOYAUTE",
-    "PROVINCE_SUD",
-    "PROVINCE_NORD"
+    "PROVINCE_SUD"
   ],
   "zones_non_reconnues": null,
   "scraped_at_local": "2026-10-09T07:27:14+11:00",
   "communes_geopoints": [
     {
-      "commune": "LIFOU",
-      "lat": -20.944989,
-      "lon": 167.238656,
-      "population": 9195
-    },
-    {
       "commune": "NOUMEA",
       "lat": -22.2578,
       "lon": 166.45009,
       "population": 94285
-    },
-    {
-      "commune": "KONE",
-      "lat": -21.026262,
-      "lon": 164.906408,
-      "population": 8144
     }
   ],
   "centroide": {
-    "lat": -21.409683666666666,
-    "lon": 166.19838466666667
+    "lat": -22.2578,
+    "lon": 166.45009
   }
 }

@@ -1,6 +1,6 @@
 {
-  "id": "9a824b99",
-  "scraped_at": "2026-10-07T02:03:38Z",
+  "id": "8c846a67",
+  "scraped_at": "2026-10-08T20:27:14Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-11-03T23:00:00+11:00",
   "timestamp_fin": "2026-11-04T02:00:00+11:00",
@@ -8,10 +8,12 @@
   "duree_coupure_min_minutes": null,
   "duree_coupure_max_minutes": null,
   "communes_concernees": [
+    "MOINDOU",
     "BOURAIL",
     "POYA",
     "CANALA",
     "HOUAILOU",
+    "KOUAOUA",
     "PONERIHOUEN"
   ],
   "services": [
@@ -19,19 +21,21 @@
     "FIBRE_OPTIQUE"
   ],
   "impact": "A_DETERMINER",
-  "nb_communes_concernees": 5,
+  "nb_communes_concernees": 7,
   "est_toute_nc": false,
   "provinces_concernees": [
     "PROVINCE_SUD",
     "PROVINCE_NORD"
   ],
-  "zones_non_reconnues": [
-    "Moindou",
-    "Néoupi",
-    "Kouaoua"
-  ],
-  "scraped_at_local": "2026-10-07T13:03:38+11:00",
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-10-09T07:27:14+11:00",
   "communes_geopoints": [
+    {
+      "commune": "MOINDOU",
+      "lat": -21.625926,
+      "lon": 165.674933,
+      "population": 681
+    },
     {
       "commune": "BOURAIL",
       "lat": -21.534368,
@@ -57,6 +61,12 @@
       "population": 3955
     },
     {
+      "commune": "KOUAOUA",
+      "lat": -21.458301,
+      "lon": 165.782577,
+      "population": 1304
+    },
+    {
       "commune": "PONERIHOUEN",
       "lat": -21.131155,
       "lon": 165.315489,
@@ -64,7 +74,7 @@
     }
   ],
   "centroide": {
-    "lat": -21.3715208,
-    "lon": 165.5013034
+    "lat": -21.420261571428572,
+    "lon": 165.56628957142857
   }
 }
