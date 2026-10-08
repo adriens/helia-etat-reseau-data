@@ -10,6 +10,11 @@ on:
 permissions:
   contents: write
 
+# Deux push sur le même commit ne doivent pas produire deux tags
+concurrency:
+  group: tag-on-sdk-bump
+  cancel-in-progress: false
+
 jobs:
   tag:
     name: Sync lock + bump MAJOR (schéma JSON)
@@ -25,6 +30,23 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Détecter un bump du SDK
+        id: sdk
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # pyproject.toml peut changer pour une autre dépendance (ex. duckdb) :
+          # seul un changement de la ligne helia-etat-reseaux vaut un bump MAJOR
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+            && git diff "$BEFORE" "$GITHUB_SHA" -- pyproject.toml \
+              | grep -qE '^[+-][[:space:]]*"helia-etat-reseaux'; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+            echo "SDK helia-etat-reseaux modifié."
+          else
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "SDK inchangé : pas de bump MAJOR."
+          fi
+
       - name: Mettre à jour uv.lock
         run: uv lock
 
@@ -36,14 +58,20 @@ jobs:
           if git diff --cached --quiet; then
             echo "uv.lock déjà à jour."
           else
-            git commit -m "chore: sync uv.lock après bump SDK"
+            git commit -m "chore: sync uv.lock après modification de pyproject.toml"
             git push
           fi
 
       - name: Bump MAJOR et créer le tag
         id: tag
+        if: steps.sdk.outputs.bumped == 'true'
         run: |
           git fetch --tags
+          EXISTING=$(git tag --points-at "$GITHUB_SHA" 'v[0-9]*.0.0'; git tag --points-at HEAD 'v[0-9]*.0.0')
+          if [ -n "$EXISTING" ]; then
+            echo "Commit déjà tagué ($(echo $EXISTING | tr '\n' ' ')) : rien à faire."
+            exit 0
+          fi
           LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1)
           LATEST=${LATEST:-v0.0.0}
           MAJOR=$(echo "$LATEST" | cut -d. -f1 | tr -d 'v')
@@ -56,6 +84,7 @@ jobs:
   release:
     name: Publier la release
     needs: tag
+    if: needs.tag.outputs.new_tag != ''
     permissions:
       contents: write
     uses: ./.github/workflows/release.yml
