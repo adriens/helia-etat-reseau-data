@@ -1,6 +1,6 @@
 {
-  "id": "2d09e26f",
-  "scraped_at": "2026-10-08T20:27:14Z",
+  "id": "9bff5099",
+  "scraped_at": "2026-10-08T20:37:05Z",
   "source_url": "https://helia.nc/etat-du-reseau",
   "timestamp_debut": "2026-10-26T23:00:00+11:00",
   "timestamp_fin": "2026-10-27T02:00:00+11:00",
@@ -16,6 +16,7 @@
   ],
   "services": [
     "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
     "FIBRE_OPTIQUE"
   ],
   "impact": "A_DETERMINER",
@@ -27,7 +28,7 @@
     "ILES_LOYAUTE"
   ],
   "zones_non_reconnues": null,
-  "scraped_at_local": "2026-10-09T07:27:14+11:00",
+  "scraped_at_local": "2026-10-09T07:37:05+11:00",
   "communes_geopoints": [
     {
       "commune": "NOUMEA",
