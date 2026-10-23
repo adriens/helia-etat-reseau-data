@@ -40,7 +40,7 @@ jobs:
           ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Installer DuckDB
-        uses: opt-nc/setup-duckdb-action@v1.2.12
+        uses: opt-nc/setup-duckdb-action@v1.3.0
 
       - name: Exporter les données actives (DuckDB + Parquet)
         run: |
