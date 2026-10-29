@@ -41,6 +41,8 @@ jobs:
 
       - name: Installer DuckDB
         uses: opt-nc/setup-duckdb-action@v1.3.0
+        with:
+          version: v2.0.0
 
       - name: Exporter les données actives (DuckDB + Parquet)
         run: |
