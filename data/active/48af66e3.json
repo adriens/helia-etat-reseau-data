@@ -1,0 +1,36 @@
+{
+  "id": "48af66e3",
+  "scraped_at": "2026-11-03T09:21:47Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-11-05T09:00:00+11:00",
+  "timestamp_fin": "2026-11-05T11:00:00+11:00",
+  "duree_fenetre_minutes": 120,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "HIENGHENE"
+  ],
+  "services": [
+    "TELEPHONIE_MOBILE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-11-03T20:21:47+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "HIENGHENE",
+      "lat": -20.716141,
+      "lon": 164.845422,
+      "population": 2454
+    }
+  ],
+  "centroide": {
+    "lat": -20.716141,
+    "lon": 164.845422
+  }
+}
