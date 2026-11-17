@@ -1,0 +1,40 @@
+{
+  "id": "c1619b83",
+  "scraped_at": "2026-11-17T01:33:03Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-12-09T08:00:00+11:00",
+  "timestamp_fin": "2026-12-09T14:00:00+11:00",
+  "duree_fenetre_minutes": 360,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "PONERIHOUEN"
+  ],
+  "services": [
+    "TELEPHONIE_FIXE",
+    "INTERNET_FIXE",
+    "FIBRE_OPTIQUE"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "PROVINCE_NORD"
+  ],
+  "zones_non_reconnues": [
+    "Nessakouya"
+  ],
+  "scraped_at_local": "2026-11-17T12:33:03+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "PONERIHOUEN",
+      "lat": -21.131155,
+      "lon": 165.315489,
+      "population": 2420
+    }
+  ],
+  "centroide": {
+    "lat": -21.131155,
+    "lon": 165.315489
+  }
+}
