@@ -1,0 +1,36 @@
+{
+  "id": "8bad688d",
+  "scraped_at": "2026-11-25T06:56:10Z",
+  "source_url": "https://helia.nc/etat-du-reseau",
+  "timestamp_debut": "2026-12-10T08:00:00+11:00",
+  "timestamp_fin": "2026-12-10T10:00:00+11:00",
+  "duree_fenetre_minutes": 120,
+  "duree_coupure_min_minutes": null,
+  "duree_coupure_max_minutes": null,
+  "communes_concernees": [
+    "OUVEA"
+  ],
+  "services": [
+    "LIAISONS_CELERIS_ETHERNET"
+  ],
+  "impact": "A_DETERMINER",
+  "nb_communes_concernees": 1,
+  "est_toute_nc": false,
+  "provinces_concernees": [
+    "ILES_LOYAUTE"
+  ],
+  "zones_non_reconnues": null,
+  "scraped_at_local": "2026-11-25T17:56:10+11:00",
+  "communes_geopoints": [
+    {
+      "commune": "OUVEA",
+      "lat": -20.563597,
+      "lon": 166.562699,
+      "population": 3401
+    }
+  ],
+  "centroide": {
+    "lat": -20.563597,
+    "lon": 166.562699
+  }
+}
